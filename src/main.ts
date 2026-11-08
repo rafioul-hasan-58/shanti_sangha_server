@@ -8,6 +8,8 @@ import { TransformInterceptor } from './common/interceptors/transform.intercepto
 import { GlobalExceptionFilter } from './common/filters/global-exception.filter';
 import { CustomLogger } from './core/logger/logger.service';
 import { API_DOCS_PATH, GLOBAL_PREFIX } from './core/constants';
+import { getWelcomeHtml } from './welcome.html';
+import type { Request, Response } from 'express';
 
 async function bootstrap() {
   const logger = new CustomLogger();
@@ -38,9 +40,33 @@ async function bootstrap() {
     const configService = app.get(ConfigService<EnvConfig, true>);
     const port = configService.get('PORT', { infer: true });
 
+    // Handle root landing page at http://localhost:5000
+    const expressApp = app.getHttpAdapter().getInstance();
+    expressApp.get('/', (req: Request, res: Response) => {
+      if (
+        req.headers.accept &&
+        req.headers.accept.includes('application/json') &&
+        !req.headers.accept.includes('text/html')
+      ) {
+        return res.json({
+          message: 'welcome to SHAVARCHALA SHANTI SANGHA server',
+          status: 'online',
+          port,
+          timestamp: new Date().toISOString(),
+        });
+      }
+      res.setHeader('Content-Type', 'text/html; charset=utf-8');
+      return res.send(getWelcomeHtml());
+    });
+
+    // Convenient redirect from /api to /api/docs
+    expressApp.get(`/${GLOBAL_PREFIX}`, (req: Request, res: Response) => {
+      return res.redirect(`/${API_DOCS_PATH}`);
+    });
+
     const config = new DocumentBuilder()
-      .setTitle('NestJS Starter Pack API')
-      .setDescription('The starter pack API description')
+      .setTitle('SHAVARCHALA SHANTI SANGHA Server API')
+      .setDescription('SHAVARCHALA SHANTI SANGHA Server API Documentation')
       .setVersion('1.0')
       .addBearerAuth()
       .build();
@@ -48,7 +74,10 @@ async function bootstrap() {
     SwaggerModule.setup(API_DOCS_PATH, app, documentFactory);
 
     await app.listen(port);
-    logger.log(`🚀 Server running on http://localhost:${port}`, 'Bootstrap');
+    logger.log(
+      `🚀 SHAVARCHALA SHANTI SANGHA Server running on http://localhost:${port}`,
+      'Bootstrap',
+    );
   } catch (error) {
     logger.error(
       'Error during bootstrap:',

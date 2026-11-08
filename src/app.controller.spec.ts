@@ -2,6 +2,8 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { PrismaService } from './prisma/prisma.service';
+import { JwtService } from '@nestjs/jwt';
+import { Reflector } from '@nestjs/core';
 
 describe('AppController', () => {
   let appController: AppController;
@@ -19,6 +21,13 @@ describe('AppController', () => {
             },
           },
         },
+        {
+          provide: JwtService,
+          useValue: {
+            verifyAsync: jest.fn(),
+          },
+        },
+        Reflector,
       ],
     }).compile();
 
@@ -30,7 +39,7 @@ describe('AppController', () => {
       const response = await appController.getHello();
       expect(response).toEqual({
         message: 'Fetched Successfully!',
-        data: 'Hello World! 1',
+        data: 'Welcome to SHAVARCHALA SHANTI SANGHA server! (Hello World! 1)',
       });
     });
   });
