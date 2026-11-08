@@ -36,6 +36,7 @@ model User {
   authProvider    AuthProvider   @default(EMAIL)
   emailVerified   DateTime?
   phoneVerified   DateTime?
+  adminVerified   DateTime?
   createdAt       DateTime       @default(now())
   updatedAt       DateTime       @updatedAt
 }
