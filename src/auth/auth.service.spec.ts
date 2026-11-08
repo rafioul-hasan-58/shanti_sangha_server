@@ -52,7 +52,7 @@ describe('AuthService', () => {
     usersRepository = {
       findByEmail: jest.fn(),
       create: jest.fn(),
-      update: jest.fn(),
+      update: jest.fn().mockImplementation((id, data) => Promise.resolve({ ...mockUser, ...data })),
     };
 
     jwtService = {

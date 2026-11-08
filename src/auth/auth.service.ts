@@ -206,7 +206,8 @@ export class AuthService {
         updateData.emailVerified = new Date();
       }
       if (Object.keys(updateData).length > 0) {
-        user = await this.usersRepository.update(user.id, updateData);
+        const updated = await this.usersRepository.update(user.id, updateData);
+        user = updated || { ...user, ...updateData };
       }
     } else {
       // Create new user for first-time Google sign-in
