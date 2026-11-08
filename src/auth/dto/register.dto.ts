@@ -5,28 +5,17 @@ import {
   IsOptional,
   IsString,
   MinLength,
-  ValidateIf,
 } from 'class-validator';
 import { BloodGroup, MembershipType } from '@prisma/client';
 
 export class RegisterDto {
-  @ApiPropertyOptional({
+  @ApiProperty({
     description: 'Full name of the user',
     example: 'John Doe',
   })
-  @ValidateIf((o: RegisterDto) => !o.name)
   @IsString()
   @MinLength(2, { message: 'Full name must be at least 2 characters' })
-  fullName?: string;
-
-  @ApiPropertyOptional({
-    description: 'Alternative alias for fullName',
-    example: 'John Doe',
-  })
-  @ValidateIf((o: RegisterDto) => !o.fullName)
-  @IsString()
-  @MinLength(2, { message: 'Name must be at least 2 characters' })
-  name?: string;
+  fullName: string;
 
   @ApiProperty({
     description: 'The email address of the user',

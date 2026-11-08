@@ -31,7 +31,7 @@ model User {
   village         String?
   currentLocation String?
   whatsappNumber  String?
-  MembershipType  MembershipType @default(PERMANENT)
+  membershipType  MembershipType @default(PERMANENT)
   facebookProfile String?
   authProvider    AuthProvider   @default(EMAIL)
   emailVerified   DateTime?

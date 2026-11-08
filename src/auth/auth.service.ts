@@ -38,7 +38,7 @@ export class AuthService {
       throw new ConflictException('This email is already in use!');
     }
 
-    const fullName = (payload.fullName || payload.name || '').trim();
+    const fullName = (payload.fullName || '').trim();
     if (!fullName) {
       throw new BadRequestException('Full name is required');
     }
