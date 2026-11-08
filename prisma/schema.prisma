@@ -14,16 +14,63 @@ datasource db {
 }
 
 model User {
-  id        String   @id @default(auto()) @map("_id") @db.ObjectId
-  name      String
-  email     String   @unique
-  password  String
-  role      Role     @default(USER)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id              String         @id @default(auto()) @map("_id") @db.ObjectId
+  fullName        String
+  fatherName      String?
+  motherName      String?
+  email           String         @unique
+  password        String
+  profileImage    String?
+  phoneNumber     String?
+  bloodGroup      BloodGroup     @default(UNKNOWN)
+  bio             String?
+  summary         String?
+  status          UserStatus     @default(ACTIVE)
+  role            Role           @default(USER)
+  profession      String?
+  village         String?
+  currentLocation String?
+  whatsappNumber  String?
+  MembershipType  MembershipType @default(PERMANENT)
+  facebookProfile String?
+  authProvider    AuthProvider   @default(EMAIL)
+  emailVerified   DateTime?
+  phoneVerified   DateTime?
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
 }
 
 enum Role {
   USER
+  MODERATOR
   ADMIN
+  SUPER_ADMIN
+}
+
+enum BloodGroup {
+  A_POSITIVE
+  A_NEGATIVE
+  B_POSITIVE
+  B_NEGATIVE
+  AB_POSITIVE
+  AB_NEGATIVE
+  O_POSITIVE
+  O_NEGATIVE
+  UNKNOWN
+}
+
+enum UserStatus {
+  ACTIVE
+  INACTIVE
+  SUSPENDED
+}
+
+enum MembershipType {
+  PERMANENT
+  PLAYER_QUOTA
+}
+
+enum AuthProvider {
+  GOOGLE
+  EMAIL
 }
