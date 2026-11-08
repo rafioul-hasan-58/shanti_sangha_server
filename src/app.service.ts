@@ -12,7 +12,7 @@ export class AppService {
   async triggerNotFound() {
     return this.prisma.user.update({
       where: { id: '000000000000000000000000' }, // valid ObjectId format, doesn't exist
-      data: { name: 'test' },
+      data: { fullName: 'test' },
     });
   }
 }

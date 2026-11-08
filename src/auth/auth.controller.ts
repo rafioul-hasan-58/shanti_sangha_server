@@ -1,8 +1,7 @@
 import { Body, Controller, HttpCode, HttpStatus, Post } from '@nestjs/common';
 import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { AuthService } from './auth.service';
-import { RegisterDto } from './dto/register.dto';
-import { LoginDto } from './dto/login.dto';
+import { RegisterDto, LoginDto, GoogleLoginDto } from './dto';
 
 @ApiTags('Authentication')
 @Controller('auth')
@@ -10,14 +9,14 @@ export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
   @Post('register')
-  @ApiOperation({ summary: 'Register a new user' })
+  @ApiOperation({ summary: 'Register a new user account' })
   @ApiResponse({ status: 201, description: 'User successfully registered.' })
   @ApiResponse({ status: 400, description: 'Validation failed.' })
   @ApiResponse({ status: 409, description: 'Conflict: Email already in use.' })
   async register(@Body() dto: RegisterDto) {
     const data = await this.authService.register(dto);
     return {
-      message: 'Registration successfull',
+      message: 'Registration successful',
       data,
     };
   }
@@ -25,12 +24,32 @@ export class AuthController {
   @Post('login')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Login with email and password' })
-  @ApiResponse({ status: 200, description: 'Token' })
-  @ApiResponse({ status: 401, description: 'Invalid email or password' })
+  @ApiResponse({
+    status: 200,
+    description: 'Login successful. Returns access token and user profile.',
+  })
+  @ApiResponse({ status: 401, description: 'Invalid email or password.' })
   async login(@Body() dto: LoginDto) {
     const data = await this.authService.login(dto);
     return {
-      message: 'Login successfull!',
+      message: 'Login successful!',
+      data,
+    };
+  }
+
+  @Post('google')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Login or register with Google OAuth / One Tap' })
+  @ApiResponse({
+    status: 200,
+    description: 'Google login successful. Returns access token and user profile.',
+  })
+  @ApiResponse({ status: 400, description: 'Invalid Google token or payload.' })
+  @ApiResponse({ status: 401, description: 'Unauthorized or token verification failed.' })
+  async googleLogin(@Body() dto: GoogleLoginDto) {
+    const data = await this.authService.googleLogin(dto);
+    return {
+      message: 'Google login successful!',
       data,
     };
   }
