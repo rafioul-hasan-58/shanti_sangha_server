@@ -9,7 +9,7 @@ import { GlobalExceptionFilter } from './common/filters/global-exception.filter'
 import { CustomLogger } from './core/logger/logger.service';
 import { API_DOCS_PATH, GLOBAL_PREFIX } from './core/constants';
 import { getWelcomeHtml } from './welcome.html';
-import type { Request, Response } from 'express';
+import type { Express, Request, Response } from 'express';
 
 async function bootstrap() {
   const logger = new CustomLogger();
@@ -41,7 +41,7 @@ async function bootstrap() {
     const port = configService.get('PORT', { infer: true });
 
     // Handle root landing page at http://localhost:5000
-    const expressApp = app.getHttpAdapter().getInstance();
+    const expressApp = app.getHttpAdapter().getInstance() as Express;
     expressApp.get('/', (req: Request, res: Response) => {
       if (
         req.headers.accept &&

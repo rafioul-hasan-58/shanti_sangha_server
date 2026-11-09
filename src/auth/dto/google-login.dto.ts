@@ -3,7 +3,8 @@ import { IsEmail, IsOptional, IsString } from 'class-validator';
 
 export class GoogleLoginDto {
   @ApiPropertyOptional({
-    description: 'Google ID token (JWT credential from Google Identity Services / One Tap)',
+    description:
+      'Google ID token (JWT credential from Google Identity Services / One Tap)',
     example: 'eyJhbGciOiJSUzI1NiIsImtpZCI6...',
   })
   @IsOptional()
@@ -50,4 +51,3 @@ export class GoogleLoginDto {
   @IsString()
   googleId?: string;
 }
-

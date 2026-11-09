@@ -42,10 +42,14 @@ export class AuthController {
   @ApiOperation({ summary: 'Login or register with Google OAuth / One Tap' })
   @ApiResponse({
     status: 200,
-    description: 'Google login successful. Returns access token and user profile.',
+    description:
+      'Google login successful. Returns access token and user profile.',
   })
   @ApiResponse({ status: 400, description: 'Invalid Google token or payload.' })
-  @ApiResponse({ status: 401, description: 'Unauthorized or token verification failed.' })
+  @ApiResponse({
+    status: 401,
+    description: 'Unauthorized or token verification failed.',
+  })
   async googleLogin(@Body() dto: GoogleLoginDto) {
     const data = await this.authService.googleLogin(dto);
     return {

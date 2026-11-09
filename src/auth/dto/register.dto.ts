@@ -49,6 +49,14 @@ export class RegisterDto {
   motherName?: string;
 
   @ApiPropertyOptional({
+    description: 'Profile image URL',
+    example: 'https://example.com/avatar.jpg',
+  })
+  @IsOptional()
+  @IsString()
+  profileImage?: string;
+
+  @ApiPropertyOptional({
     description: 'Phone number',
     example: '+8801700000000',
   })
@@ -120,15 +128,6 @@ export class RegisterDto {
   })
   @IsOptional()
   @IsEnum(MembershipType, { message: 'Invalid membership type' })
-  MembershipType?: MembershipType;
-
-  @ApiPropertyOptional({
-    enum: MembershipType,
-    description: 'Lowercase alias for MembershipType',
-    example: MembershipType.PERMANENT,
-  })
-  @IsOptional()
-  @IsEnum(MembershipType, { message: 'Invalid membership type' })
   membershipType?: MembershipType;
 
   @ApiPropertyOptional({
@@ -138,12 +137,4 @@ export class RegisterDto {
   @IsOptional()
   @IsString()
   facebookProfile?: string;
-
-  @ApiPropertyOptional({
-    description: 'Profile image URL',
-    example: 'https://example.com/avatar.jpg',
-  })
-  @IsOptional()
-  @IsString()
-  profileImage?: string;
 }

@@ -2,11 +2,14 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { AuthService } from './auth.service';
 import { UsersRepository } from '../modules/users/users.repository';
 import { JwtService } from '@nestjs/jwt';
+import { ConflictException, UnauthorizedException } from '@nestjs/common';
 import {
-  ConflictException,
-  UnauthorizedException,
-} from '@nestjs/common';
-import { Role, UserStatus, BloodGroup, MembershipType, AuthProvider } from '@prisma/client';
+  Role,
+  UserStatus,
+  BloodGroup,
+  MembershipType,
+  AuthProvider,
+} from '@prisma/client';
 import bcrypt from 'bcryptjs';
 
 describe('AuthService', () => {
@@ -37,7 +40,7 @@ describe('AuthService', () => {
     village: null,
     currentLocation: null,
     whatsappNumber: null,
-    MembershipType: MembershipType.PERMANENT,
+    membershipType: MembershipType.PERMANENT,
     facebookProfile: null,
     profileImage: null,
     authProvider: AuthProvider.EMAIL,
@@ -52,7 +55,11 @@ describe('AuthService', () => {
     usersRepository = {
       findByEmail: jest.fn(),
       create: jest.fn(),
-      update: jest.fn().mockImplementation((id, data) => Promise.resolve({ ...mockUser, ...data })),
+      update: jest
+        .fn()
+        .mockImplementation((id, data) =>
+          Promise.resolve({ ...mockUser, ...data }),
+        ),
     };
 
     jwtService = {
@@ -91,12 +98,14 @@ describe('AuthService', () => {
         password: 'password123',
       });
 
-      expect(usersRepository.findByEmail).toHaveBeenCalledWith('test@example.com');
+      expect(usersRepository.findByEmail).toHaveBeenCalledWith(
+        'test@example.com',
+      );
       expect(usersRepository.create).toHaveBeenCalled();
       expect(result.accessToken).toBe('mock_jwt_token');
       expect(result.user.email).toBe('test@example.com');
       expect(result.user.fullName).toBe('Test User');
-      expect((result.user as any).password).toBeUndefined();
+      expect('password' in result.user).toBe(false);
     });
 
     it('should throw ConflictException if email already exists', async () => {
@@ -127,7 +136,7 @@ describe('AuthService', () => {
 
       expect(result.accessToken).toBe('mock_jwt_token');
       expect(result.user.email).toBe('test@example.com');
-      expect((result.user as any).password).toBeUndefined();
+      expect('password' in result.user).toBe(false);
     });
 
     it('should throw UnauthorizedException if user not found', async () => {

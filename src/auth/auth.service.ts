@@ -7,6 +7,7 @@ import {
 import { JwtService } from '@nestjs/jwt';
 import {
   User,
+  Prisma,
   Role,
   UserStatus,
   BloodGroup,
@@ -19,6 +20,13 @@ import { UsersRepository } from '../modules/users/users.repository';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
 import { GoogleLoginDto } from './dto/google-login.dto';
+
+interface GoogleUserInfo {
+  email?: string;
+  name?: string;
+  picture?: string;
+  sub?: string;
+}
 
 @Injectable()
 export class AuthService {
@@ -44,10 +52,7 @@ export class AuthService {
     }
 
     const hashedPassword = await bcrypt.hash(payload.password, 12);
-    const membershipType =
-      payload.MembershipType ||
-      payload.membershipType ||
-      MembershipType.PERMANENT;
+    const membershipType = payload.membershipType || MembershipType.PERMANENT;
     const bloodGroup = payload.bloodGroup || BloodGroup.UNKNOWN;
 
     const user = await this.usersRepository.create({
@@ -64,7 +69,7 @@ export class AuthService {
       village: payload.village || null,
       currentLocation: payload.currentLocation || null,
       whatsappNumber: payload.whatsappNumber || null,
-      MembershipType: membershipType,
+      membershipType,
       facebookProfile: payload.facebookProfile || null,
       profileImage: payload.profileImage || null,
       role: Role.USER,
@@ -141,10 +146,11 @@ export class AuthService {
           `https://oauth2.googleapis.com/tokeninfo?id_token=${encodeURIComponent(payload.idToken)}`,
         );
         if (response.ok) {
-          const googleData: any = await response.json();
+          const googleData = (await response.json()) as GoogleUserInfo;
           if (googleData.email) email = googleData.email;
           if (googleData.name) fullName = fullName || googleData.name;
-          if (googleData.picture) profileImage = profileImage || googleData.picture;
+          if (googleData.picture)
+            profileImage = profileImage || googleData.picture;
         } else if (!email) {
           throw new UnauthorizedException('Invalid Google ID token');
         }
@@ -166,10 +172,11 @@ export class AuthService {
           },
         );
         if (response.ok) {
-          const googleData: any = await response.json();
+          const googleData = (await response.json()) as GoogleUserInfo;
           if (googleData.email) email = googleData.email;
           if (googleData.name) fullName = fullName || googleData.name;
-          if (googleData.picture) profileImage = profileImage || googleData.picture;
+          if (googleData.picture)
+            profileImage = profileImage || googleData.picture;
         } else if (!email) {
           throw new UnauthorizedException('Invalid Google access token');
         }
@@ -198,7 +205,7 @@ export class AuthService {
       }
 
       // Update missing profile info if available from Google
-      const updateData: Record<string, any> = {};
+      const updateData: Prisma.UserUpdateInput = {};
       if (!user.profileImage && profileImage) {
         updateData.profileImage = profileImage;
       }
@@ -227,7 +234,7 @@ export class AuthService {
         role: Role.USER,
         status: UserStatus.ACTIVE,
         bloodGroup: BloodGroup.UNKNOWN,
-        MembershipType: MembershipType.PERMANENT,
+        membershipType: MembershipType.PERMANENT,
       });
     }
 
@@ -250,7 +257,8 @@ export class AuthService {
    * Helper to exclude sensitive password field from user object
    */
   private sanitizeUser(user: User) {
-    const { password, ...sanitized } = user;
+    const { password: _password, ...sanitized } = user;
+    void _password;
     return sanitized;
   }
 }

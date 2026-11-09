@@ -50,7 +50,7 @@ async function main() {
         role: Role.SUPER_ADMIN,
         status: UserStatus.ACTIVE,
         bloodGroup: BloodGroup.UNKNOWN,
-        MembershipType: MembershipType.PERMANENT,
+        membershipType: MembershipType.PERMANENT,
         authProvider: AuthProvider.EMAIL,
         emailVerified: new Date(),
         adminVerified: new Date(),
