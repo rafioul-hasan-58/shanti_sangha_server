@@ -196,10 +196,16 @@ describe('AuthService', () => {
   describe('googleLogin', () => {
     it('should successfully login existing user via Google and return tokens', async () => {
       usersRepository.findByEmail.mockResolvedValue(mockUser);
+      const googlePayload = {
+        email: 'test@example.com',
+        name: 'Test User',
+      };
+      const mockJwt = `eyJhbGciOiJSUzI1NiJ9.${Buffer.from(
+        JSON.stringify(googlePayload),
+      ).toString('base64url')}.mockSignature`;
 
       const result = await service.googleLogin({
-        email: 'test@example.com',
-        fullName: 'Test User',
+        token: mockJwt,
       });
 
       expect(result.accessToken).toBe('mock_jwt_token');
@@ -207,18 +213,27 @@ describe('AuthService', () => {
       expect(result.user.email).toBe('test@example.com');
     });
 
-    it('should create new user via Google if not existing', async () => {
+    it('should create new user via Google token if not existing', async () => {
+      const googlePayload = {
+        email: 'newgoogle@example.com',
+        name: 'Google User',
+        picture: 'https://example.com/avatar.jpg',
+      };
+      const mockJwt = `eyJhbGciOiJSUzI1NiJ9.${Buffer.from(
+        JSON.stringify(googlePayload),
+      ).toString('base64url')}.mockSignature`;
+
       usersRepository.findByEmail.mockResolvedValue(null);
       const googleUser = {
         ...mockUser,
+        email: googlePayload.email,
+        fullName: googlePayload.name,
         authProvider: AuthProvider.GOOGLE,
       };
       usersRepository.create.mockResolvedValue(googleUser);
 
       const result = await service.googleLogin({
-        email: 'newgoogle@example.com',
-        fullName: 'Google User',
-        profileImage: 'https://example.com/avatar.jpg',
+        token: mockJwt,
       });
 
       expect(usersRepository.create).toHaveBeenCalled();

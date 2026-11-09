@@ -38,13 +38,6 @@ interface GoogleJwtPayload {
   exp?: number;
 }
 
-interface GoogleUserInfo {
-  email?: string;
-  name?: string;
-  picture?: string;
-  sub?: string;
-}
-
 interface RefreshTokenPayload {
   id: string;
   email: string;
@@ -234,68 +227,31 @@ export class AuthService {
   }
 
   /**
-   * Google OAuth / JWT Token Login and Registration
+   * Google JWT Token Login and Registration
    */
   async googleLogin(payload: GoogleLoginDto) {
-    let email = payload.email;
-    let fullName = payload.fullName;
-    let profileImage = payload.profileImage;
-    let googleId = payload.googleId;
-
-    const rawJwt =
-      payload.token || payload.credential || payload.idToken || payload.jwt;
-
-    // 1. If JWT token is passed, decode it and extract user details
-    if (rawJwt) {
-      const decoded = this.decodeGoogleToken(rawJwt);
-      if (decoded && decoded.email) {
-        email = decoded.email;
-        fullName = fullName || decoded.name || decoded.given_name;
-        profileImage = profileImage || decoded.picture;
-        googleId = googleId || decoded.sub;
-      } else if (!email) {
-        throw new UnauthorizedException(
-          'Invalid Google JWT token: unable to decode email',
-        );
-      }
-    } else if (payload.accessToken) {
-      // 2. Fallback: if access token is passed (e.g. from OAuth popup)
-      try {
-        const response = await fetch(
-          'https://www.googleapis.com/oauth2/v3/userinfo',
-          {
-            headers: {
-              Authorization: `Bearer ${payload.accessToken}`,
-            },
-          },
-        );
-        if (response.ok) {
-          const googleData = (await response.json()) as GoogleUserInfo;
-          if (googleData.email) email = googleData.email;
-          if (googleData.name) fullName = fullName || googleData.name;
-          if (googleData.picture)
-            profileImage = profileImage || googleData.picture;
-          if (googleData.sub) googleId = googleId || googleData.sub;
-        } else if (!email) {
-          throw new UnauthorizedException('Invalid Google access token');
-        }
-      } catch (error: any) {
-        if (error instanceof UnauthorizedException) throw error;
-        if (!email) {
-          throw new UnauthorizedException('Failed to verify Google user info');
-        }
-      }
+    const rawJwt = payload.token?.trim();
+    if (!rawJwt) {
+      throw new BadRequestException('Google token is required');
     }
 
-    if (!email) {
-      throw new BadRequestException(
-        'Google login requires a valid Google JWT token, credential, or email address',
+    const decoded = this.decodeGoogleToken(rawJwt);
+    if (!decoded || !decoded.email) {
+      throw new UnauthorizedException(
+        'Invalid Google token: unable to decode user information',
       );
     }
 
-    email = email.toLowerCase().trim();
+    const email = decoded.email.toLowerCase().trim();
+    const fullName =
+      decoded.name?.trim() ||
+      decoded.given_name?.trim() ||
+      email.split('@')[0] ||
+      'Google User';
+    const profileImage = decoded.picture || null;
+    const googleId = decoded.sub || null;
 
-    // 3. Find or create user
+    // Find or create user
     let user = await this.usersRepository.findByEmail(email);
 
     if (user) {
@@ -323,15 +279,13 @@ export class AuthService {
       const randomPassword =
         crypto.randomUUID() + crypto.randomBytes(16).toString('hex');
       const hashedPassword = await bcrypt.hash(randomPassword, 12);
-      const resolvedFullName =
-        fullName?.trim() || email.split('@')[0] || 'Google User';
 
       user = await this.usersRepository.create({
-        fullName: resolvedFullName,
+        fullName,
         email,
         password: hashedPassword,
-        googleId: googleId || null,
-        profileImage: profileImage || null,
+        googleId,
+        profileImage,
         authProvider: AuthProvider.GOOGLE,
         emailVerified: new Date(),
         role: Role.USER,

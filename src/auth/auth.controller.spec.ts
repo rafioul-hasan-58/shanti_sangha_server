@@ -79,8 +79,7 @@ describe('AuthController', () => {
 
   it('should call authService.googleLogin on google and return accessToken & refreshToken', async () => {
     const dto = {
-      email: 'test@example.com',
-      fullName: 'Test User',
+      token: 'mock_google_jwt_token',
     };
     const res = await controller.googleLogin(dto);
     expect(authService.googleLogin).toHaveBeenCalledWith(dto);
