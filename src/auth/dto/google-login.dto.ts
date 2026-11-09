@@ -3,13 +3,37 @@ import { IsEmail, IsOptional, IsString } from 'class-validator';
 
 export class GoogleLoginDto {
   @ApiPropertyOptional({
+    description: 'Google JWT token from Google Sign-In',
+    example: 'eyJhbGciOiJSUzI1NiIsImtpZCI6...',
+  })
+  @IsOptional()
+  @IsString()
+  token?: string;
+
+  @ApiPropertyOptional({
     description:
-      'Google ID token (JWT credential from Google Identity Services / One Tap)',
+      'Google JWT credential from Google One Tap / Identity Services',
+    example: 'eyJhbGciOiJSUzI1NiIsImtpZCI6...',
+  })
+  @IsOptional()
+  @IsString()
+  credential?: string;
+
+  @ApiPropertyOptional({
+    description: 'Google ID token (alias for token/credential)',
     example: 'eyJhbGciOiJSUzI1NiIsImtpZCI6...',
   })
   @IsOptional()
   @IsString()
   idToken?: string;
+
+  @ApiPropertyOptional({
+    description: 'Raw JWT token (alias)',
+    example: 'eyJhbGciOiJSUzI1NiIsImtpZCI6...',
+  })
+  @IsOptional()
+  @IsString()
+  jwt?: string;
 
   @ApiPropertyOptional({
     description: 'Google OAuth access token',
@@ -20,7 +44,7 @@ export class GoogleLoginDto {
   accessToken?: string;
 
   @ApiPropertyOptional({
-    description: 'User email (optional if idToken or accessToken is provided)',
+    description: 'User email (optional if JWT token is provided)',
     example: 'john.doe@gmail.com',
   })
   @IsOptional()

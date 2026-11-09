@@ -24,6 +24,20 @@ import { LoginDto } from './dto/login.dto';
 import { GoogleLoginDto } from './dto/google-login.dto';
 import { EnvConfig } from '../config/env.schema';
 
+interface GoogleJwtPayload {
+  iss?: string;
+  sub?: string;
+  aud?: string;
+  email?: string;
+  email_verified?: boolean | string;
+  name?: string;
+  picture?: string;
+  given_name?: string;
+  family_name?: string;
+  iat?: number;
+  exp?: number;
+}
+
 interface GoogleUserInfo {
   email?: string;
   name?: string;
@@ -98,6 +112,41 @@ export class AuthService {
       accessToken,
       refreshToken,
     };
+  }
+
+  /**
+   * Helper to decode a Google JWT token (e.g. from Google One Tap / Sign-In)
+   */
+  private decodeGoogleToken(rawToken: string): GoogleJwtPayload | null {
+    try {
+      // 1. Base64url decode of JWT payload
+      const parts = rawToken.split('.');
+      if (parts.length === 3) {
+        const payloadStr = Buffer.from(parts[1], 'base64url').toString('utf-8');
+        const parsed = JSON.parse(payloadStr) as Record<string, unknown>;
+        if (parsed && typeof parsed.email === 'string') {
+          return parsed;
+        }
+      }
+
+      // 2. Fallback using jwtService.decode
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+      const decoded: any = this.jwtService.decode(rawToken);
+
+      if (
+        decoded &&
+        typeof decoded === 'object' &&
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+        typeof decoded.email === 'string'
+      ) {
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-return
+        return decoded;
+      }
+
+      return null;
+    } catch {
+      return null;
+    }
   }
 
   /**
@@ -185,36 +234,32 @@ export class AuthService {
   }
 
   /**
-   * Google OAuth / One Tap Login and Registration
+   * Google OAuth / JWT Token Login and Registration
    */
   async googleLogin(payload: GoogleLoginDto) {
     let email = payload.email;
     let fullName = payload.fullName;
     let profileImage = payload.profileImage;
+    let googleId = payload.googleId;
 
-    // 1. Verify with Google ID token if provided
-    if (payload.idToken) {
-      try {
-        const response = await fetch(
-          `https://oauth2.googleapis.com/tokeninfo?id_token=${encodeURIComponent(payload.idToken)}`,
+    const rawJwt =
+      payload.token || payload.credential || payload.idToken || payload.jwt;
+
+    // 1. If JWT token is passed, decode it and extract user details
+    if (rawJwt) {
+      const decoded = this.decodeGoogleToken(rawJwt);
+      if (decoded && decoded.email) {
+        email = decoded.email;
+        fullName = fullName || decoded.name || decoded.given_name;
+        profileImage = profileImage || decoded.picture;
+        googleId = googleId || decoded.sub;
+      } else if (!email) {
+        throw new UnauthorizedException(
+          'Invalid Google JWT token: unable to decode email',
         );
-        if (response.ok) {
-          const googleData = (await response.json()) as GoogleUserInfo;
-          if (googleData.email) email = googleData.email;
-          if (googleData.name) fullName = fullName || googleData.name;
-          if (googleData.picture)
-            profileImage = profileImage || googleData.picture;
-        } else if (!email) {
-          throw new UnauthorizedException('Invalid Google ID token');
-        }
-      } catch (error: any) {
-        if (error instanceof UnauthorizedException) throw error;
-        if (!email) {
-          throw new UnauthorizedException('Failed to verify Google token');
-        }
       }
     } else if (payload.accessToken) {
-      // 2. Verify with Google Access Token if provided
+      // 2. Fallback: if access token is passed (e.g. from OAuth popup)
       try {
         const response = await fetch(
           'https://www.googleapis.com/oauth2/v3/userinfo',
@@ -230,6 +275,7 @@ export class AuthService {
           if (googleData.name) fullName = fullName || googleData.name;
           if (googleData.picture)
             profileImage = profileImage || googleData.picture;
+          if (googleData.sub) googleId = googleId || googleData.sub;
         } else if (!email) {
           throw new UnauthorizedException('Invalid Google access token');
         }
@@ -243,7 +289,7 @@ export class AuthService {
 
     if (!email) {
       throw new BadRequestException(
-        'Google login requires a valid idToken, accessToken, or email address',
+        'Google login requires a valid Google JWT token, credential, or email address',
       );
     }
 
@@ -261,6 +307,9 @@ export class AuthService {
       const updateData: Prisma.UserUpdateInput = {};
       if (!user.profileImage && profileImage) {
         updateData.profileImage = profileImage;
+      }
+      if (!user.googleId && googleId) {
+        updateData.googleId = googleId;
       }
       if (!user.emailVerified) {
         updateData.emailVerified = new Date();
@@ -281,6 +330,7 @@ export class AuthService {
         fullName: resolvedFullName,
         email,
         password: hashedPassword,
+        googleId: googleId || null,
         profileImage: profileImage || null,
         authProvider: AuthProvider.GOOGLE,
         emailVerified: new Date(),

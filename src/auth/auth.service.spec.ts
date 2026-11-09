@@ -23,6 +23,7 @@ describe('AuthService', () => {
   let jwtService: {
     sign: jest.Mock;
     verifyAsync: jest.Mock;
+    decode: jest.Mock;
   };
 
   const mockUser = {
@@ -71,6 +72,7 @@ describe('AuthService', () => {
         id: mockUser.id,
         email: mockUser.email,
       }),
+      decode: jest.fn().mockReturnValue(null),
     };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -222,6 +224,33 @@ describe('AuthService', () => {
       expect(usersRepository.create).toHaveBeenCalled();
       expect(result.accessToken).toBe('mock_jwt_token');
       expect(result.refreshToken).toBe('mock_jwt_token');
+    });
+
+    it('should decode a Google JWT token and login or create user', async () => {
+      const googlePayload = {
+        email: 'decoded@gmail.com',
+        name: 'Decoded Google User',
+        picture: 'https://example.com/pic.jpg',
+      };
+      const mockJwt = `eyJhbGciOiJSUzI1NiJ9.${Buffer.from(
+        JSON.stringify(googlePayload),
+      ).toString('base64url')}.mockSignature`;
+
+      jwtService.decode = jest.fn().mockReturnValue(googlePayload);
+      usersRepository.findByEmail.mockResolvedValue(null);
+      usersRepository.create.mockResolvedValue({
+        ...mockUser,
+        email: googlePayload.email,
+        fullName: googlePayload.name,
+      });
+
+      const result = await service.googleLogin({
+        token: mockJwt,
+      });
+
+      expect(result.accessToken).toBe('mock_jwt_token');
+      expect(result.refreshToken).toBe('mock_jwt_token');
+      expect(usersRepository.create).toHaveBeenCalled();
     });
   });
 
