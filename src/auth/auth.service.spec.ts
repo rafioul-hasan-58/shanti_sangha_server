@@ -16,11 +16,13 @@ describe('AuthService', () => {
   let service: AuthService;
   let usersRepository: {
     findByEmail: jest.Mock;
+    findById: jest.Mock;
     create: jest.Mock;
     update: jest.Mock;
   };
   let jwtService: {
     sign: jest.Mock;
+    verifyAsync: jest.Mock;
   };
 
   const mockUser = {
@@ -54,6 +56,7 @@ describe('AuthService', () => {
   beforeEach(async () => {
     usersRepository = {
       findByEmail: jest.fn(),
+      findById: jest.fn(),
       create: jest.fn(),
       update: jest
         .fn()
@@ -64,6 +67,10 @@ describe('AuthService', () => {
 
     jwtService = {
       sign: jest.fn().mockReturnValue('mock_jwt_token'),
+      verifyAsync: jest.fn().mockResolvedValue({
+        id: mockUser.id,
+        email: mockUser.email,
+      }),
     };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -88,7 +95,7 @@ describe('AuthService', () => {
   });
 
   describe('register', () => {
-    it('should successfully register a new user', async () => {
+    it('should successfully register a new user and return accessToken and refreshToken', async () => {
       usersRepository.findByEmail.mockResolvedValue(null);
       usersRepository.create.mockResolvedValue(mockUser);
 
@@ -103,6 +110,7 @@ describe('AuthService', () => {
       );
       expect(usersRepository.create).toHaveBeenCalled();
       expect(result.accessToken).toBe('mock_jwt_token');
+      expect(result.refreshToken).toBe('mock_jwt_token');
       expect(result.user.email).toBe('test@example.com');
       expect(result.user.fullName).toBe('Test User');
       expect('password' in result.user).toBe(false);
@@ -122,7 +130,7 @@ describe('AuthService', () => {
   });
 
   describe('login', () => {
-    it('should successfully login with valid credentials', async () => {
+    it('should successfully login with valid credentials and return accessToken and refreshToken', async () => {
       const hashedPassword = await bcrypt.hash('password123', 10);
       usersRepository.findByEmail.mockResolvedValue({
         ...mockUser,
@@ -135,6 +143,7 @@ describe('AuthService', () => {
       });
 
       expect(result.accessToken).toBe('mock_jwt_token');
+      expect(result.refreshToken).toBe('mock_jwt_token');
       expect(result.user.email).toBe('test@example.com');
       expect('password' in result.user).toBe(false);
     });
@@ -183,7 +192,7 @@ describe('AuthService', () => {
   });
 
   describe('googleLogin', () => {
-    it('should successfully login existing user via Google', async () => {
+    it('should successfully login existing user via Google and return tokens', async () => {
       usersRepository.findByEmail.mockResolvedValue(mockUser);
 
       const result = await service.googleLogin({
@@ -192,6 +201,7 @@ describe('AuthService', () => {
       });
 
       expect(result.accessToken).toBe('mock_jwt_token');
+      expect(result.refreshToken).toBe('mock_jwt_token');
       expect(result.user.email).toBe('test@example.com');
     });
 
@@ -211,6 +221,25 @@ describe('AuthService', () => {
 
       expect(usersRepository.create).toHaveBeenCalled();
       expect(result.accessToken).toBe('mock_jwt_token');
+      expect(result.refreshToken).toBe('mock_jwt_token');
+    });
+  });
+
+  describe('refreshToken', () => {
+    it('should refresh tokens when given a valid refresh token', async () => {
+      usersRepository.findById.mockResolvedValue(mockUser);
+
+      const result = await service.refreshToken('valid_refresh_token');
+
+      expect(result.accessToken).toBe('mock_jwt_token');
+      expect(result.refreshToken).toBe('mock_jwt_token');
+      expect(result.user.email).toBe('test@example.com');
+    });
+
+    it('should throw UnauthorizedException if refresh token is missing', async () => {
+      await expect(service.refreshToken('')).rejects.toThrow(
+        UnauthorizedException,
+      );
     });
   });
 });

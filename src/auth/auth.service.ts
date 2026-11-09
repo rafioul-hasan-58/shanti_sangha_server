@@ -2,9 +2,11 @@ import {
   BadRequestException,
   ConflictException,
   Injectable,
+  Optional,
   UnauthorizedException,
 } from '@nestjs/common';
-import { JwtService } from '@nestjs/jwt';
+import { JwtService, JwtSignOptions } from '@nestjs/jwt';
+import { ConfigService } from '@nestjs/config';
 import {
   User,
   Prisma,
@@ -20,6 +22,7 @@ import { UsersRepository } from '../modules/users/users.repository';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
 import { GoogleLoginDto } from './dto/google-login.dto';
+import { EnvConfig } from '../config/env.schema';
 
 interface GoogleUserInfo {
   email?: string;
@@ -28,12 +31,74 @@ interface GoogleUserInfo {
   sub?: string;
 }
 
+interface RefreshTokenPayload {
+  id: string;
+  email: string;
+}
+
 @Injectable()
 export class AuthService {
   constructor(
     private readonly usersRepository: UsersRepository,
     private readonly jwtService: JwtService,
+    @Optional()
+    private readonly configService?: ConfigService<EnvConfig, true>,
   ) {}
+
+  /**
+   * Helper to generate both accessToken and refreshToken for a user
+   */
+  private generateTokens(user: User): {
+    accessToken: string;
+    refreshToken: string;
+  } {
+    const tokenPayload = {
+      id: user.id,
+      email: user.email,
+      role: user.role,
+      status: user.status,
+      fullName: user.fullName,
+    };
+
+    const accessSecret =
+      this.configService?.get('JWT_ACCESS_SECRET', { infer: true }) ||
+      process.env.JWT_ACCESS_SECRET ||
+      'default_jwt_secret_key_12345';
+    const accessExpiresIn =
+      this.configService?.get('JWT_ACCESS_EXPIRES_IN', { infer: true }) ||
+      process.env.JWT_ACCESS_EXPIRES_IN ||
+      '7d';
+
+    const refreshSecret =
+      this.configService?.get('JWT_REFRESH_SECRET', { infer: true }) ||
+      process.env.JWT_REFRESH_SECRET ||
+      `${accessSecret}_refresh`;
+    const refreshExpiresIn =
+      this.configService?.get('JWT_REFRESH_EXPIRES_IN', { infer: true }) ||
+      process.env.JWT_REFRESH_EXPIRES_IN ||
+      '30d';
+
+    const accessSignOptions: JwtSignOptions = {
+      secret: accessSecret,
+      expiresIn: accessExpiresIn as unknown as number,
+    };
+
+    const refreshSignOptions: JwtSignOptions = {
+      secret: refreshSecret,
+      expiresIn: refreshExpiresIn as unknown as number,
+    };
+
+    const accessToken = this.jwtService.sign(tokenPayload, accessSignOptions);
+    const refreshToken = this.jwtService.sign(
+      { id: user.id, email: user.email },
+      refreshSignOptions,
+    );
+
+    return {
+      accessToken,
+      refreshToken,
+    };
+  }
 
   /**
    * Register a new user with email and password
@@ -77,17 +142,11 @@ export class AuthService {
       authProvider: AuthProvider.EMAIL,
     });
 
-    const tokenPayload = {
-      id: user.id,
-      email: user.email,
-      role: user.role,
-      status: user.status,
-      fullName: user.fullName,
-    };
-    const accessToken = this.jwtService.sign(tokenPayload);
+    const { accessToken, refreshToken } = this.generateTokens(user);
 
     return {
       accessToken,
+      refreshToken,
       user: this.sanitizeUser(user),
       // Backward compatibility fields
       id: user.id,
@@ -116,17 +175,11 @@ export class AuthService {
       throw new UnauthorizedException('Your account has been suspended!');
     }
 
-    const tokenPayload = {
-      id: user.id,
-      email: user.email,
-      role: user.role,
-      status: user.status,
-      fullName: user.fullName,
-    };
-    const accessToken = this.jwtService.sign(tokenPayload);
+    const { accessToken, refreshToken } = this.generateTokens(user);
 
     return {
       accessToken,
+      refreshToken,
       user: this.sanitizeUser(user),
     };
   }
@@ -238,19 +291,59 @@ export class AuthService {
       });
     }
 
-    const tokenPayload = {
-      id: user.id,
-      email: user.email,
-      role: user.role,
-      status: user.status,
-      fullName: user.fullName,
-    };
-    const accessToken = this.jwtService.sign(tokenPayload);
+    const { accessToken, refreshToken } = this.generateTokens(user);
 
     return {
       accessToken,
+      refreshToken,
       user: this.sanitizeUser(user),
     };
+  }
+
+  /**
+   * Refresh access token using a valid refresh token
+   */
+  async refreshToken(refreshTokenString: string) {
+    if (!refreshTokenString) {
+      throw new UnauthorizedException('Refresh token is required');
+    }
+
+    const accessSecret =
+      this.configService?.get('JWT_ACCESS_SECRET', { infer: true }) ||
+      process.env.JWT_ACCESS_SECRET ||
+      'default_jwt_secret_key_12345';
+    const refreshSecret =
+      this.configService?.get('JWT_REFRESH_SECRET', { infer: true }) ||
+      process.env.JWT_REFRESH_SECRET ||
+      `${accessSecret}_refresh`;
+
+    try {
+      const payload = await this.jwtService.verifyAsync<RefreshTokenPayload>(
+        refreshTokenString,
+        {
+          secret: refreshSecret,
+        },
+      );
+
+      const user = await this.usersRepository.findById(payload.id);
+      if (!user) {
+        throw new UnauthorizedException('User not found');
+      }
+
+      if (user.status === UserStatus.SUSPENDED) {
+        throw new UnauthorizedException('Your account has been suspended!');
+      }
+
+      const { accessToken, refreshToken } = this.generateTokens(user);
+
+      return {
+        accessToken,
+        refreshToken,
+        user: this.sanitizeUser(user),
+      };
+    } catch {
+      throw new UnauthorizedException('Invalid or expired refresh token');
+    }
   }
 
   /**

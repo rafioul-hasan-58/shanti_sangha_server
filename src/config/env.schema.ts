@@ -8,6 +8,8 @@ export const envSchema = z.object({
   DATABASE_URL: z.string().url(),
   JWT_ACCESS_SECRET: z.string().min(10),
   JWT_ACCESS_EXPIRES_IN: z.string().default('7d'),
+  JWT_REFRESH_SECRET: z.string().min(10).optional(),
+  JWT_REFRESH_EXPIRES_IN: z.string().default('30d'),
   SUPER_ADMIN_NAME: z.string().optional(),
   SUPER_ADMIN_EMAIL: z.string().email().optional(),
   SUPER_ADMIN_PASSWORD: z.string().optional(),
