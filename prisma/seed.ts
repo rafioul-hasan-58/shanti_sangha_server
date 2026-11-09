@@ -1,3 +1,4 @@
+import 'dotenv/config';
 import {
   PrismaClient,
   Role,
@@ -11,41 +12,52 @@ import bcrypt from 'bcryptjs';
 const prisma = new PrismaClient();
 
 async function main() {
-  const adminEmail = (
-    process.env.ADMIN_EMAIL || 'admin@shantisangha.com'
-  ).toLowerCase().trim();
-  const adminPassword = process.env.ADMIN_PASSWORD || 'Admin@123456';
-  const adminFullName = process.env.ADMIN_NAME || 'Super Admin';
+  const superAdminEmail = (
+    process.env.SUPER_ADMIN_EMAIL ||
+    process.env.ADMIN_EMAIL ||
+    'rafioulhasan2@gmail.com'
+  )
+    .toLowerCase()
+    .trim();
+
+  const superAdminPassword =
+    process.env.SUPER_ADMIN_PASSWORD ||
+    process.env.ADMIN_PASSWORD ||
+    '12345678';
+
+  const superAdminName =
+    process.env.SUPER_ADMIN_NAME || process.env.ADMIN_NAME || 'Sourav Prodhan';
 
   console.log('🌱 Starting database seed...');
-  console.log(`Checking admin user: ${adminEmail}`);
+  console.log(`Target Super Admin: ${superAdminEmail} (${superAdminName})`);
 
-  const existingAdmin = await prisma.user.findUnique({
-    where: { email: adminEmail },
+  const existingSuperAdmin = await prisma.user.findUnique({
+    where: { email: superAdminEmail },
   });
 
-  const hashedPassword = await bcrypt.hash(adminPassword, 12);
+  const hashedPassword = await bcrypt.hash(superAdminPassword, 12);
 
-  if (existingAdmin) {
+  if (existingSuperAdmin) {
     const updated = await prisma.user.update({
-      where: { email: adminEmail },
+      where: { email: superAdminEmail },
       data: {
-        fullName: adminFullName,
+        fullName: superAdminName,
         password: hashedPassword,
         role: Role.SUPER_ADMIN,
         status: UserStatus.ACTIVE,
-        adminVerified: existingAdmin.adminVerified || new Date(),
-        emailVerified: existingAdmin.emailVerified || new Date(),
+        membershipType: MembershipType.PERMANENT,
+        adminVerified: existingSuperAdmin.adminVerified || new Date(),
+        emailVerified: existingSuperAdmin.emailVerified || new Date(),
       },
     });
     console.log(
-      `✅ Admin user already exists (${adminEmail}). Updated credentials and verified role: ${updated.role}`,
+      `✅ Super Admin user already exists (${superAdminEmail}). Updated credentials and verified role: ${updated.role}`,
     );
   } else {
     const created = await prisma.user.create({
       data: {
-        fullName: adminFullName,
-        email: adminEmail,
+        fullName: superAdminName,
+        email: superAdminEmail,
         password: hashedPassword,
         role: Role.SUPER_ADMIN,
         status: UserStatus.ACTIVE,
@@ -57,7 +69,7 @@ async function main() {
       },
     });
     console.log(
-      `✅ Admin user created successfully: ${created.email} (Role: ${created.role})`,
+      `✅ Super Admin user created successfully: ${created.email} (Role: ${created.role})`,
     );
   }
 
@@ -72,4 +84,3 @@ main()
   .finally(async () => {
     await prisma.$disconnect();
   });
-
