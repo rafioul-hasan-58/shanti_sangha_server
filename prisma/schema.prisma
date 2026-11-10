@@ -42,6 +42,35 @@ model User {
   updatedAt       DateTime       @updatedAt
 }
 
+model Member {
+  id                String     @id @default(auto()) @map("_id") @db.ObjectId
+  slug              String     @unique // your old "emon" id
+  nameEn            String
+  nameBn            String
+  roleEn            String
+  roleBn            String
+  image             String?
+  villageEn         String
+  villageBn         String // URL or path
+  summaryEn         String
+  summaryBn         String
+  keyContributionEn String[]   @default([])
+  keyContributionBn String[]   @default([])
+  mottoEn           String?
+  mottoBn           String?
+  joiningYear       String
+  isKeyLeader       Boolean    @default(false)
+  type              MemberType @default(COMMITTEE)
+  order             Int        @default(0) // controls display order
+  createdAt         DateTime   @default(now())
+  updatedAt         DateTime   @updatedAt
+}
+
+enum MemberType {
+  PIONEER
+  COMMITTEE
+}
+
 enum Role {
   USER
   MODERATOR
