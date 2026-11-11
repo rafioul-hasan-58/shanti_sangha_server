@@ -15,6 +15,7 @@ export const envSchema = z.object({
   SUPER_ADMIN_PASSWORD: z.string().optional(),
   OAUTH_CLIENT_ID: z.string().optional(),
   OAUTH_CLIENT_SECRET: z.string().optional(),
+  CORS_ORIGINS: z.string().optional(),
 });
 
 export type EnvConfig = z.infer<typeof envSchema>;

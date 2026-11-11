@@ -19,6 +19,34 @@ async function bootstrap() {
       logger,
     });
 
+    const configService = app.get(ConfigService<EnvConfig, true>);
+    const port = configService.get('PORT', { infer: true });
+    const envCorsOrigins = configService.get('CORS_ORIGINS', { infer: true });
+
+    const allowedOrigins = envCorsOrigins
+      ? envCorsOrigins
+          .split(',')
+          .map((origin) => origin.trim())
+          .filter(Boolean)
+      : ['http://localhost:3000'];
+
+    if (!allowedOrigins.includes('http://localhost:3000')) {
+      allowedOrigins.push('http://localhost:3000');
+    }
+
+    app.enableCors({
+      origin: allowedOrigins,
+      credentials: true,
+      methods: ['GET', 'HEAD', 'PUT', 'PATCH', 'POST', 'DELETE', 'OPTIONS'],
+      allowedHeaders: [
+        'Content-Type',
+        'Authorization',
+        'Accept',
+        'Origin',
+        'X-Requested-With',
+      ],
+    });
+
     app.setGlobalPrefix(GLOBAL_PREFIX);
 
     // Enable URI versioning (e.g. /api/v1/auth/login)
@@ -36,9 +64,6 @@ async function bootstrap() {
         transform: true, // auto-converts payloads into DTO class instances
       }),
     );
-
-    const configService = app.get(ConfigService<EnvConfig, true>);
-    const port = configService.get('PORT', { infer: true });
 
     // Handle root landing page at http://localhost:5000
     const expressApp = app.getHttpAdapter().getInstance() as Express;
