@@ -23,16 +23,23 @@ async function bootstrap() {
     const port = configService.get('PORT', { infer: true });
     const envCorsOrigins = configService.get('CORS_ORIGINS', { infer: true });
 
-    const allowedOrigins = envCorsOrigins
-      ? envCorsOrigins
-          .split(',')
-          .map((origin) => origin.trim())
-          .filter(Boolean)
-      : ['http://localhost:3000'];
+    const defaultOrigins = [
+      'http://localhost:3000',
+      'https://www.shantishangha.space',
+      'https://shantishangha.space',
+    ];
 
-    if (!allowedOrigins.includes('http://localhost:3000')) {
-      allowedOrigins.push('http://localhost:3000');
-    }
+    const allowedOrigins = Array.from(
+      new Set([
+        ...defaultOrigins,
+        ...(envCorsOrigins
+          ? envCorsOrigins
+              .split(',')
+              .map((origin) => origin.trim())
+              .filter(Boolean)
+          : []),
+      ]),
+    );
 
     app.enableCors({
       origin: allowedOrigins,
