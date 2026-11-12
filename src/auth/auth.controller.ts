@@ -13,7 +13,7 @@ export class AuthController {
   @ApiResponse({
     status: 201,
     description:
-      'User successfully registered. Returns accessToken, refreshToken and user profile.',
+      'User successfully registered. Returns accessToken and refreshToken.',
   })
   @ApiResponse({ status: 400, description: 'Validation failed.' })
   @ApiResponse({ status: 409, description: 'Conflict: Email already in use.' })
@@ -30,8 +30,7 @@ export class AuthController {
   @ApiOperation({ summary: 'Login with email and password' })
   @ApiResponse({
     status: 200,
-    description:
-      'Login successful. Returns accessToken, refreshToken and user profile.',
+    description: 'Login successful. Returns accessToken and refreshToken.',
   })
   @ApiResponse({ status: 401, description: 'Invalid email or password.' })
   async login(@Body() dto: LoginDto) {
@@ -48,7 +47,7 @@ export class AuthController {
   @ApiResponse({
     status: 200,
     description:
-      'Google login successful. Returns accessToken, refreshToken and user profile.',
+      'Google login successful. Returns accessToken and refreshToken.',
   })
   @ApiResponse({ status: 400, description: 'Invalid Google token or payload.' })
   @ApiResponse({

@@ -111,11 +111,10 @@ describe('AuthService', () => {
         'test@example.com',
       );
       expect(usersRepository.create).toHaveBeenCalled();
-      expect(result.accessToken).toBe('mock_jwt_token');
-      expect(result.refreshToken).toBe('mock_jwt_token');
-      expect(result.user.email).toBe('test@example.com');
-      expect(result.user.fullName).toBe('Test User');
-      expect('password' in result.user).toBe(false);
+      expect(result).toEqual({
+        accessToken: 'mock_jwt_token',
+        refreshToken: 'mock_jwt_token',
+      });
     });
 
     it('should throw ConflictException if email already exists', async () => {
@@ -144,10 +143,10 @@ describe('AuthService', () => {
         password: 'password123',
       });
 
-      expect(result.accessToken).toBe('mock_jwt_token');
-      expect(result.refreshToken).toBe('mock_jwt_token');
-      expect(result.user.email).toBe('test@example.com');
-      expect('password' in result.user).toBe(false);
+      expect(result).toEqual({
+        accessToken: 'mock_jwt_token',
+        refreshToken: 'mock_jwt_token',
+      });
     });
 
     it('should throw UnauthorizedException if user not found', async () => {
@@ -208,9 +207,10 @@ describe('AuthService', () => {
         token: mockJwt,
       });
 
-      expect(result.accessToken).toBe('mock_jwt_token');
-      expect(result.refreshToken).toBe('mock_jwt_token');
-      expect(result.user.email).toBe('test@example.com');
+      expect(result).toEqual({
+        accessToken: 'mock_jwt_token',
+        refreshToken: 'mock_jwt_token',
+      });
     });
 
     it('should create new user via Google token if not existing', async () => {

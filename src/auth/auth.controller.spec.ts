@@ -16,17 +16,14 @@ describe('AuthController', () => {
       register: jest.fn().mockResolvedValue({
         accessToken: 'mock_access_token',
         refreshToken: 'mock_refresh_token',
-        user: { id: '1', email: 'test@example.com' },
       }),
       login: jest.fn().mockResolvedValue({
         accessToken: 'mock_access_token',
         refreshToken: 'mock_refresh_token',
-        user: { id: '1', email: 'test@example.com' },
       }),
       googleLogin: jest.fn().mockResolvedValue({
         accessToken: 'mock_access_token',
         refreshToken: 'mock_refresh_token',
-        user: { id: '1', email: 'test@example.com' },
       }),
       refreshToken: jest.fn().mockResolvedValue({
         accessToken: 'mock_new_access_token',

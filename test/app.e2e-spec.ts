@@ -59,7 +59,8 @@ describe('AppController (e2e)', () => {
     const regResBody = regRes.body as Record<string, any>;
     const regData = regResBody.data as Record<string, any>;
     expect(regResBody.success).toBe(true);
-    expect(regData.email).toBe(registerPayload.email);
+    expect(regData.accessToken).toBeDefined();
+    expect(regData.refreshToken).toBeDefined();
 
     // 2. Login User
     const loginRes = await request(app.getHttpServer())
@@ -74,6 +75,7 @@ describe('AppController (e2e)', () => {
     const loginData = loginResBody.data as Record<string, any>;
     expect(loginResBody.success).toBe(true);
     expect(loginData.accessToken).toBeDefined();
+    expect(loginData.refreshToken).toBeDefined();
     const token = loginData.accessToken as string;
 
     // 3. Access Protected Route
