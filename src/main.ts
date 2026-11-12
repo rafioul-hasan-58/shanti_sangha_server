@@ -27,6 +27,8 @@ async function bootstrap() {
       'http://localhost:3000',
       'https://www.shantishangha.space',
       'https://shantishangha.space',
+      'https://www.shantisangho.com',
+      'https://shantisangho.com'
     ];
 
     const allowedOrigins = Array.from(
@@ -34,9 +36,9 @@ async function bootstrap() {
         ...defaultOrigins,
         ...(envCorsOrigins
           ? envCorsOrigins
-              .split(',')
-              .map((origin) => origin.trim())
-              .filter(Boolean)
+            .split(',')
+            .map((origin) => origin.trim())
+            .filter(Boolean)
           : []),
       ]),
     );
