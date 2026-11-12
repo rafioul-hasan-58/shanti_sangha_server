@@ -28,7 +28,7 @@ import { QueryUserDto, UpdateProfileDto, UpdateUserDto } from './dto';
 @UseGuards(AuthGuard)
 @Controller('users')
 export class UsersController {
-  constructor(private readonly usersService: UsersService) {}
+  constructor(private readonly usersService: UsersService) { }
 
   @Get('profile')
   @HttpCode(HttpStatus.OK)
@@ -69,7 +69,7 @@ export class UsersController {
   }
 
   @Get()
-  @Roles(Role.ADMIN, Role.SUPER_ADMIN)
+  @Roles(Role.ADMIN, Role.SUPER_ADMIN, Role.USER, Role.MODERATOR)
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
     summary: 'Get all users with optional filters, pagination, and sorting',
