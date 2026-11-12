@@ -47,8 +47,8 @@ describe('UsersService', () => {
     facebookProfile: null,
     authProvider: AuthProvider.EMAIL,
     emailVerified: false,
-    phoneVerified: null,
-    adminVerified: null,
+    phoneVerified: false,
+    adminVerified: false,
     googleId: null,
     resetOtpHash: null,
     resetOtpExpiresAt: null,
@@ -270,7 +270,8 @@ describe('UsersService', () => {
         role: Role.MODERATOR,
         status: UserStatus.INACTIVE,
         emailVerified: true,
-        adminVerified: new Date(),
+        phoneVerified: true,
+        adminVerified: true,
       };
       repository.update.mockResolvedValue(updatedUser);
 
@@ -281,41 +282,32 @@ describe('UsersService', () => {
           role: Role.MODERATOR,
           status: UserStatus.INACTIVE,
           emailVerified: true,
+          phoneVerified: true,
           adminVerified: true,
         },
         actorId,
       );
 
-      const updateCalls = repository.update.mock.calls as [
-        string,
-        {
-          fullName?: string;
-          role?: Role;
-          status?: UserStatus;
-          emailVerified?: boolean;
-          adminVerified?: Date | null;
-        },
-      ][];
-      expect(updateCalls[0][0]).toBe(mockUser.id);
-      expect(updateCalls[0][1]).toMatchObject({
+      expect(repository.update).toHaveBeenCalledWith(mockUser.id, {
         fullName: 'Updated Admin Target',
         role: Role.MODERATOR,
         status: UserStatus.INACTIVE,
         emailVerified: true,
+        phoneVerified: true,
+        adminVerified: true,
       });
-      expect(updateCalls[0][1].adminVerified).toBeInstanceOf(Date);
       expect(result.role).toBe(Role.MODERATOR);
       expect('password' in result).toBe(false);
     });
 
-    it('should clear adminVerified when set to false', async () => {
+    it('should set adminVerified to false when disabled', async () => {
       repository.findById.mockResolvedValue({
         ...mockUser,
-        adminVerified: new Date(),
+        adminVerified: true,
       });
       repository.update.mockResolvedValue({
         ...mockUser,
-        adminVerified: null,
+        adminVerified: false,
       });
 
       const result = await service.updateUser(
@@ -325,9 +317,9 @@ describe('UsersService', () => {
       );
 
       expect(repository.update).toHaveBeenCalledWith(mockUser.id, {
-        adminVerified: null,
+        adminVerified: false,
       });
-      expect(result.adminVerified).toBeNull();
+      expect(result.adminVerified).toBe(false);
     });
 
     it('should prevent changing own role or suspending own account', async () => {

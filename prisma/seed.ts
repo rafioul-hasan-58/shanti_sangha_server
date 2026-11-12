@@ -46,7 +46,7 @@ async function main() {
         role: Role.SUPER_ADMIN,
         status: UserStatus.ACTIVE,
         membershipType: MembershipType.PERMANENT,
-        adminVerified: existingSuperAdmin.adminVerified || new Date(),
+        adminVerified: true,
         emailVerified: true,
       },
     });
@@ -65,7 +65,7 @@ async function main() {
         membershipType: MembershipType.PERMANENT,
         authProvider: AuthProvider.EMAIL,
         emailVerified: true,
-        adminVerified: new Date(),
+        adminVerified: true,
       },
     });
     console.log(

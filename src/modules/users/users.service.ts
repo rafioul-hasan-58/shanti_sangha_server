@@ -234,10 +234,12 @@ export class UsersService {
       updateData.emailVerified = dto.emailVerified;
     }
 
+    if (dto.phoneVerified !== undefined) {
+      updateData.phoneVerified = dto.phoneVerified;
+    }
+
     if (dto.adminVerified !== undefined) {
-      updateData.adminVerified = dto.adminVerified
-        ? existing.adminVerified || new Date()
-        : null;
+      updateData.adminVerified = dto.adminVerified;
     }
 
     if (Object.keys(updateData).length === 0) {

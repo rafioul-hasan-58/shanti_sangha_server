@@ -31,8 +31,15 @@ export class UpdateUserDto extends UpdateProfileDto {
   emailVerified?: boolean;
 
   @ApiPropertyOptional({
-    description:
-      'Whether the user is verified by an admin (sets or clears adminVerified timestamp)',
+    description: 'Whether the user phone number is verified',
+    example: true,
+  })
+  @IsOptional()
+  @IsBoolean({ message: 'phoneVerified must be a boolean' })
+  phoneVerified?: boolean;
+
+  @ApiPropertyOptional({
+    description: 'Whether the user is verified by an admin',
     example: true,
   })
   @IsOptional()
