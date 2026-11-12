@@ -190,11 +190,6 @@ export class AuthService {
     return {
       accessToken,
       refreshToken,
-      user: sanitizeUser(user),
-      // Backward compatibility fields
-      id: user.id,
-      fullName: user.fullName,
-      email: user.email,
     };
   }
 
@@ -223,7 +218,6 @@ export class AuthService {
     return {
       accessToken,
       refreshToken,
-      user: sanitizeUser(user),
     };
   }
 
@@ -301,7 +295,6 @@ export class AuthService {
     return {
       accessToken,
       refreshToken,
-      user: sanitizeUser(user),
     };
   }
 
