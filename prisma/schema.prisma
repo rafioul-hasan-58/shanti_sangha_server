@@ -35,8 +35,8 @@ model User {
   facebookProfile   String?
   authProvider      AuthProvider   @default(EMAIL)
   emailVerified     Boolean        @default(false)
-  phoneVerified     DateTime?
-  adminVerified     DateTime?
+  phoneVerified     Boolean        @default(false)
+  adminVerified     Boolean        @default(false)
   googleId          String?
   resetOtpHash      String?
   resetOtpExpiresAt DateTime?
