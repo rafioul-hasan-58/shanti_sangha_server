@@ -5,9 +5,7 @@ describe('getWelcomeHtml', () => {
     const html = getWelcomeHtml();
     expect(html).toContain('bg-[#006a4e]');
     expect(html).toContain('#006a4e');
-    expect(html.toLowerCase()).toContain(
-      'welcome to shavarchala shanti sangha server',
-    );
+    expect(html.toLowerCase()).toContain('welcome to shanti_sangho_server');
     expect(html).toContain('<!DOCTYPE html>');
   });
 });

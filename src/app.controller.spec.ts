@@ -39,7 +39,7 @@ describe('AppController', () => {
       const response = await appController.getHello();
       expect(response).toEqual({
         message: 'Fetched Successfully!',
-        data: 'Welcome to SHAVARCHALA SHANTI SANGHA server! (Hello World! 1)',
+        data: 'Welcome to shanti_sangho_server! (Hello World! 1)',
       });
     });
   });

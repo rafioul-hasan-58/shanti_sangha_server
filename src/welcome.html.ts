@@ -4,7 +4,7 @@ export function getWelcomeHtml(): string {
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>SHAVARCHALA SHANTI SANGHA Server</title>
+  <title>shanti_sangho_server</title>
   <style>
     * {
       box-sizing: border-box;
@@ -138,7 +138,7 @@ export function getWelcomeHtml(): string {
       <span class="badge-dot"></span>
       Server Running
     </div>
-    <h1>welcome to SHAVARCHALA SHANTI SANGHA server</h1>
+    <h1>welcome to shanti_sangho_server</h1>
     <p>The server is up and running successfully on port 5000.</p>
     <div class="actions">
       <a href="/api/docs" class="btn btn-primary">
@@ -150,7 +150,7 @@ export function getWelcomeHtml(): string {
     </div>
   </div>
   <div class="footer">
-    SHAVARCHALA SHANTI SANGHA Server &bull; Running on localhost:5000
+    shanti_sangho_server &bull; Running on localhost:5000
   </div>
 </body>
 </html>`;

@@ -1,7 +1,7 @@
 {
-  "name": "shavarchala-shanti-sangha-server",
+  "name": "shanti_sangho_server",
   "version": "0.0.1",
-  "description": "SHAVARCHALA SHANTI SANGHA Server",
+  "description": "shanti_sangho_server",
   "author": "",
   "private": true,
   "license": "UNLICENSED",

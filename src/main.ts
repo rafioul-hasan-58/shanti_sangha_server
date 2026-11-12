@@ -83,7 +83,7 @@ async function bootstrap() {
         !req.headers.accept.includes('text/html')
       ) {
         return res.json({
-          message: 'welcome to SHAVARCHALA SHANTI SANGHA server',
+          message: 'welcome to shanti_sangho_server',
           status: 'online',
           port,
           timestamp: new Date().toISOString(),
@@ -99,8 +99,8 @@ async function bootstrap() {
     });
 
     const config = new DocumentBuilder()
-      .setTitle('SHAVARCHALA SHANTI SANGHA Server API')
-      .setDescription('SHAVARCHALA SHANTI SANGHA Server API Documentation')
+      .setTitle('shanti_sangho_server API')
+      .setDescription('shanti_sangho_server API Documentation')
       .setVersion('1.0')
       .addBearerAuth()
       .build();
@@ -109,7 +109,7 @@ async function bootstrap() {
 
     await app.listen(port);
     logger.log(
-      `🚀 SHAVARCHALA SHANTI SANGHA Server running on http://localhost:${port}`,
+      `🚀 shanti_sangho_server running on http://localhost:${port}`,
       'Bootstrap',
     );
   } catch (error) {
