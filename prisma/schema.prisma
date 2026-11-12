@@ -14,35 +14,35 @@ datasource db {
 }
 
 model User {
-  id              String         @id @default(auto()) @map("_id") @db.ObjectId
-  fullName        String
-  fatherName      String?
-  motherName      String?
-  email           String         @unique
-  password        String
-  profileImage    String?
-  phoneNumber     String?
-  bloodGroup      BloodGroup     @default(UNKNOWN)
-  bio             String?
-  summary         String?
-  status          UserStatus     @default(ACTIVE)
-  role            Role           @default(USER)
-  profession      String?
-  village         String?
-  currentLocation String?
-  whatsappNumber  String?
-  membershipType  MembershipType @default(PERMANENT)
-  facebookProfile String?
-  authProvider    AuthProvider   @default(EMAIL)
-  emailVerified   DateTime?
-  phoneVerified   DateTime?
-  adminVerified    DateTime?
-  googleId         String?
-  resetOtpHash     String?
+  id                String         @id @default(auto()) @map("_id") @db.ObjectId
+  fullName          String
+  fatherName        String?
+  motherName        String?
+  email             String         @unique
+  password          String
+  profileImage      String?
+  phoneNumber       String?
+  bloodGroup        BloodGroup     @default(UNKNOWN)
+  bio               String?
+  summary           String?
+  status            UserStatus     @default(ACTIVE)
+  role              Role           @default(USER)
+  profession        String?
+  village           String?
+  currentLocation   String?
+  whatsappNumber    String?
+  membershipType    MembershipType @default(PERMANENT)
+  facebookProfile   String?
+  authProvider      AuthProvider   @default(EMAIL)
+  emailVerified     Boolean        @default(false)
+  phoneVerified     DateTime?
+  adminVerified     DateTime?
+  googleId          String?
+  resetOtpHash      String?
   resetOtpExpiresAt DateTime?
-  resetOtpVerified Boolean        @default(false)
-  createdAt        DateTime       @default(now())
-  updatedAt       DateTime       @updatedAt
+  resetOtpVerified  Boolean        @default(false)
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @updatedAt
 }
 
 model Member {

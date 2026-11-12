@@ -28,7 +28,7 @@ async function bootstrap() {
       'https://www.shantishangha.space',
       'https://shantishangha.space',
       'https://www.shantisangho.com',
-      'https://shantisangho.com'
+      'https://shantisangho.com',
     ];
 
     const allowedOrigins = Array.from(

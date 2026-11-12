@@ -47,7 +47,7 @@ async function main() {
         status: UserStatus.ACTIVE,
         membershipType: MembershipType.PERMANENT,
         adminVerified: existingSuperAdmin.adminVerified || new Date(),
-        emailVerified: existingSuperAdmin.emailVerified || new Date(),
+        emailVerified: true,
       },
     });
     console.log(
@@ -64,7 +64,7 @@ async function main() {
         bloodGroup: BloodGroup.UNKNOWN,
         membershipType: MembershipType.PERMANENT,
         authProvider: AuthProvider.EMAIL,
-        emailVerified: new Date(),
+        emailVerified: true,
         adminVerified: new Date(),
       },
     });

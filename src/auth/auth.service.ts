@@ -274,7 +274,7 @@ export class AuthService {
         updateData.googleId = googleId;
       }
       if (!user.emailVerified) {
-        updateData.emailVerified = new Date();
+        updateData.emailVerified = true;
       }
       if (Object.keys(updateData).length > 0) {
         const updated = await this.usersRepository.update(user.id, updateData);
@@ -293,7 +293,7 @@ export class AuthService {
         googleId,
         profileImage,
         authProvider: AuthProvider.GOOGLE,
-        emailVerified: new Date(),
+        emailVerified: true,
         role: Role.USER,
         status: UserStatus.ACTIVE,
         bloodGroup: BloodGroup.UNKNOWN,
@@ -475,7 +475,7 @@ export class AuthService {
       resetOtpHash: null,
       resetOtpExpiresAt: null,
       resetOtpVerified: false,
-      emailVerified: user.emailVerified || new Date(),
+      emailVerified: true,
     });
 
     return {

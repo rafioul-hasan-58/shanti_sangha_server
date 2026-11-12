@@ -43,7 +43,7 @@ describe('UsersService', () => {
     membershipType: MembershipType.PERMANENT,
     facebookProfile: null,
     authProvider: AuthProvider.EMAIL,
-    emailVerified: null,
+    emailVerified: false,
     phoneVerified: null,
     adminVerified: null,
     googleId: null,
