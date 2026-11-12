@@ -9,6 +9,9 @@ describe('AuthController', () => {
     login: jest.Mock;
     googleLogin: jest.Mock;
     refreshToken: jest.Mock;
+    forgotPassword: jest.Mock;
+    verifyOtp: jest.Mock;
+    resetPassword: jest.Mock;
   };
 
   beforeEach(async () => {
@@ -29,6 +32,17 @@ describe('AuthController', () => {
         accessToken: 'mock_new_access_token',
         refreshToken: 'mock_new_refresh_token',
         user: { id: '1', email: 'test@example.com' },
+      }),
+      forgotPassword: jest.fn().mockResolvedValue({
+        email: 'test@example.com',
+        expiresInMinutes: 10,
+      }),
+      verifyOtp: jest.fn().mockResolvedValue({
+        email: 'test@example.com',
+        verified: true,
+      }),
+      resetPassword: jest.fn().mockResolvedValue({
+        email: 'test@example.com',
       }),
     };
 
@@ -94,5 +108,29 @@ describe('AuthController', () => {
     expect(res.message).toBe('Token refreshed successfully!');
     expect(res.data.accessToken).toBe('mock_new_access_token');
     expect(res.data.refreshToken).toBe('mock_new_refresh_token');
+  });
+
+  it('should call authService.forgotPassword on forgot-password', async () => {
+    const dto = { email: 'test@example.com' };
+    const res = await controller.forgotPassword(dto);
+    expect(authService.forgotPassword).toHaveBeenCalledWith(dto);
+    expect(res.message).toBe('OTP sent to your email successfully');
+    expect(res.data.expiresInMinutes).toBe(10);
+  });
+
+  it('should call authService.verifyOtp on verify-otp', async () => {
+    const dto = { email: 'test@example.com', otp: '123456' };
+    const res = await controller.verifyOtp(dto);
+    expect(authService.verifyOtp).toHaveBeenCalledWith(dto);
+    expect(res.message).toBe('OTP verified successfully');
+    expect(res.data.verified).toBe(true);
+  });
+
+  it('should call authService.resetPassword on reset-password', async () => {
+    const dto = { email: 'test@example.com', newPassword: 'newPassword123' };
+    const res = await controller.resetPassword(dto);
+    expect(authService.resetPassword).toHaveBeenCalledWith(dto);
+    expect(res.message).toBe('Password reset successfully');
+    expect(res.data.email).toBe('test@example.com');
   });
 });

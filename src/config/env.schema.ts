@@ -16,6 +16,12 @@ export const envSchema = z.object({
   OAUTH_CLIENT_ID: z.string().optional(),
   OAUTH_CLIENT_SECRET: z.string().optional(),
   CORS_ORIGINS: z.string().optional(),
+  SMTP_HOST: z.string().optional(),
+  SMTP_PORT: z.coerce.number().optional(),
+  SMTP_USER: z.string().optional(),
+  SMTP_PASS: z.string().optional(),
+  SMTP_EMAIL_FROM: z.string().email().optional(),
+  SMTP_NAME: z.string().default('SHAVARCHALA SHANTI SANGHA'),
 });
 
 export type EnvConfig = z.infer<typeof envSchema>;

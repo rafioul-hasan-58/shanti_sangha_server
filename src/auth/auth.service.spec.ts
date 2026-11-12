@@ -1,8 +1,14 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { AuthService } from './auth.service';
 import { UsersRepository } from '../modules/users/users.repository';
+import { MailService } from '../mail/mail.service';
 import { JwtService } from '@nestjs/jwt';
-import { ConflictException, UnauthorizedException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  NotFoundException,
+  UnauthorizedException,
+} from '@nestjs/common';
 import {
   Role,
   UserStatus,
@@ -11,6 +17,7 @@ import {
   AuthProvider,
 } from '@prisma/client';
 import bcrypt from 'bcryptjs';
+import crypto from 'crypto';
 
 describe('AuthService', () => {
   let service: AuthService;
@@ -24,6 +31,9 @@ describe('AuthService', () => {
     sign: jest.Mock;
     verifyAsync: jest.Mock;
     decode: jest.Mock;
+  };
+  let mailService: {
+    sendPasswordResetOtp: jest.Mock;
   };
 
   const mockUser = {
@@ -50,6 +60,10 @@ describe('AuthService', () => {
     emailVerified: null,
     phoneVerified: null,
     adminVerified: null,
+    googleId: null,
+    resetOtpHash: null,
+    resetOtpExpiresAt: null,
+    resetOtpVerified: false,
     createdAt: new Date(),
     updatedAt: new Date(),
   };
@@ -75,6 +89,10 @@ describe('AuthService', () => {
       decode: jest.fn().mockReturnValue(null),
     };
 
+    mailService = {
+      sendPasswordResetOtp: jest.fn().mockResolvedValue(undefined),
+    };
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         AuthService,
@@ -85,6 +103,10 @@ describe('AuthService', () => {
         {
           provide: JwtService,
           useValue: jwtService,
+        },
+        {
+          provide: MailService,
+          useValue: mailService,
         },
       ],
     }).compile();
@@ -284,6 +306,201 @@ describe('AuthService', () => {
       await expect(service.refreshToken('')).rejects.toThrow(
         UnauthorizedException,
       );
+    });
+  });
+
+  describe('forgotPassword', () => {
+    it('should hash 6-digit OTP, store expiry, and send email', async () => {
+      usersRepository.findByEmail.mockResolvedValue(mockUser);
+
+      const result = await service.forgotPassword({
+        email: 'Test@example.com',
+      });
+
+      expect(usersRepository.findByEmail).toHaveBeenCalledWith(
+        'test@example.com',
+      );
+      const updateCalls = usersRepository.update.mock.calls as [
+        string,
+        {
+          resetOtpHash?: string | null;
+          resetOtpExpiresAt?: Date | null;
+          resetOtpVerified?: boolean;
+        },
+      ][];
+      expect(updateCalls[0][0]).toBe(mockUser.id);
+      expect(typeof updateCalls[0][1].resetOtpHash).toBe('string');
+      expect(updateCalls[0][1].resetOtpExpiresAt).toBeInstanceOf(Date);
+      expect(updateCalls[0][1].resetOtpVerified).toBe(false);
+
+      const mailCalls = mailService.sendPasswordResetOtp.mock.calls as [
+        string,
+        string,
+        string,
+        number,
+      ][];
+      expect(mailCalls[0][0]).toBe(mockUser.email);
+      expect(mailCalls[0][1]).toBe(mockUser.fullName);
+      expect(mailCalls[0][2]).toMatch(/^\d{6}$/);
+      expect(mailCalls[0][3]).toBe(10);
+      expect(result).toEqual({
+        email: mockUser.email,
+        expiresInMinutes: 10,
+      });
+    });
+
+    it('should clear stored OTP fields if email sending fails', async () => {
+      usersRepository.findByEmail.mockResolvedValue(mockUser);
+      mailService.sendPasswordResetOtp.mockRejectedValue(
+        new Error('SMTP down'),
+      );
+
+      await expect(
+        service.forgotPassword({ email: 'test@example.com' }),
+      ).rejects.toThrow('SMTP down');
+
+      expect(usersRepository.update).toHaveBeenLastCalledWith(mockUser.id, {
+        resetOtpHash: null,
+        resetOtpExpiresAt: null,
+        resetOtpVerified: false,
+      });
+    });
+
+    it('should throw NotFoundException when email is not registered', async () => {
+      usersRepository.findByEmail.mockResolvedValue(null);
+
+      await expect(
+        service.forgotPassword({ email: 'missing@example.com' }),
+      ).rejects.toThrow(NotFoundException);
+    });
+  });
+
+  describe('verifyOtp', () => {
+    const validOtp = '482910';
+    const validHash = crypto
+      .createHash('sha256')
+      .update(validOtp)
+      .digest('hex');
+
+    it('should verify valid OTP and mark resetOtpVerified true', async () => {
+      usersRepository.findByEmail.mockResolvedValue({
+        ...mockUser,
+        resetOtpHash: validHash,
+        resetOtpExpiresAt: new Date(Date.now() + 5 * 60 * 1000),
+      });
+
+      const result = await service.verifyOtp({
+        email: 'test@example.com',
+        otp: validOtp,
+      });
+
+      const updateCalls = usersRepository.update.mock.calls as [
+        string,
+        {
+          resetOtpExpiresAt?: Date | null;
+          resetOtpVerified?: boolean;
+        },
+      ][];
+      expect(updateCalls[0][0]).toBe(mockUser.id);
+      expect(updateCalls[0][1].resetOtpVerified).toBe(true);
+      expect(updateCalls[0][1].resetOtpExpiresAt).toBeInstanceOf(Date);
+      expect(result).toEqual({ email: mockUser.email, verified: true });
+    });
+
+    it('should throw BadRequestException if OTP is incorrect', async () => {
+      usersRepository.findByEmail.mockResolvedValue({
+        ...mockUser,
+        resetOtpHash: validHash,
+        resetOtpExpiresAt: new Date(Date.now() + 5 * 60 * 1000),
+      });
+
+      await expect(
+        service.verifyOtp({ email: 'test@example.com', otp: '000000' }),
+      ).rejects.toThrow(BadRequestException);
+    });
+
+    it('should throw BadRequestException if OTP has expired', async () => {
+      usersRepository.findByEmail.mockResolvedValue({
+        ...mockUser,
+        resetOtpHash: validHash,
+        resetOtpExpiresAt: new Date(Date.now() - 1000),
+      });
+
+      await expect(
+        service.verifyOtp({ email: 'test@example.com', otp: validOtp }),
+      ).rejects.toThrow(BadRequestException);
+    });
+  });
+
+  describe('resetPassword', () => {
+    const validOtp = '482910';
+    const validHash = crypto
+      .createHash('sha256')
+      .update(validOtp)
+      .digest('hex');
+
+    it('should reset password when OTP was previously verified', async () => {
+      usersRepository.findByEmail.mockResolvedValue({
+        ...mockUser,
+        resetOtpHash: validHash,
+        resetOtpExpiresAt: new Date(Date.now() + 5 * 60 * 1000),
+        resetOtpVerified: true,
+      });
+
+      const result = await service.resetPassword({
+        email: 'test@example.com',
+        newPassword: 'newPassword123',
+      });
+
+      const updateCalls = usersRepository.update.mock.calls as [
+        string,
+        {
+          password?: string;
+          resetOtpHash?: string | null;
+          resetOtpExpiresAt?: Date | null;
+          resetOtpVerified?: boolean;
+        },
+      ][];
+      expect(updateCalls[0][0]).toBe(mockUser.id);
+      expect(typeof updateCalls[0][1].password).toBe('string');
+      expect(updateCalls[0][1].password).not.toBe('newPassword123');
+      expect(updateCalls[0][1].resetOtpHash).toBeNull();
+      expect(updateCalls[0][1].resetOtpExpiresAt).toBeNull();
+      expect(updateCalls[0][1].resetOtpVerified).toBe(false);
+      expect(result).toEqual({ email: mockUser.email });
+    });
+
+    it('should reset password when inline valid OTP is supplied', async () => {
+      usersRepository.findByEmail.mockResolvedValue({
+        ...mockUser,
+        resetOtpHash: validHash,
+        resetOtpExpiresAt: new Date(Date.now() + 5 * 60 * 1000),
+        resetOtpVerified: false,
+      });
+
+      const result = await service.resetPassword({
+        email: 'test@example.com',
+        otp: validOtp,
+        newPassword: 'newPassword123',
+      });
+
+      expect(result).toEqual({ email: mockUser.email });
+    });
+
+    it('should throw BadRequestException if OTP has not been verified', async () => {
+      usersRepository.findByEmail.mockResolvedValue({
+        ...mockUser,
+        resetOtpHash: validHash,
+        resetOtpExpiresAt: new Date(Date.now() + 5 * 60 * 1000),
+        resetOtpVerified: false,
+      });
+
+      await expect(
+        service.resetPassword({
+          email: 'test@example.com',
+          newPassword: 'newPassword123',
+        }),
+      ).rejects.toThrow(BadRequestException);
     });
   });
 });

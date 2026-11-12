@@ -36,9 +36,12 @@ model User {
   authProvider    AuthProvider   @default(EMAIL)
   emailVerified   DateTime?
   phoneVerified   DateTime?
-  adminVerified   DateTime?
-  googleId        String?
-  createdAt       DateTime       @default(now())
+  adminVerified    DateTime?
+  googleId         String?
+  resetOtpHash     String?
+  resetOtpExpiresAt DateTime?
+  resetOtpVerified Boolean        @default(false)
+  createdAt        DateTime       @default(now())
   updatedAt       DateTime       @updatedAt
 }
 

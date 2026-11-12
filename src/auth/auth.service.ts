@@ -2,6 +2,7 @@ import {
   BadRequestException,
   ConflictException,
   Injectable,
+  NotFoundException,
   Optional,
   UnauthorizedException,
 } from '@nestjs/common';
@@ -20,10 +21,19 @@ import bcrypt from 'bcryptjs';
 import crypto from 'crypto';
 import { UsersRepository } from '../modules/users/users.repository';
 import { sanitizeUser } from '../modules/users/users.utils';
-import { RegisterDto } from './dto/register.dto';
-import { LoginDto } from './dto/login.dto';
-import { GoogleLoginDto } from './dto/google-login.dto';
+import { MailService } from '../mail/mail.service';
+import {
+  RegisterDto,
+  LoginDto,
+  GoogleLoginDto,
+  ForgotPasswordDto,
+  VerifyOtpDto,
+  ResetPasswordDto,
+} from './dto';
 import { EnvConfig } from '../config/env.schema';
+
+const OTP_EXPIRY_MINUTES = 10;
+const OTP_EXPIRY_MS = OTP_EXPIRY_MINUTES * 60 * 1000;
 
 interface GoogleJwtPayload {
   iss?: string;
@@ -49,6 +59,7 @@ export class AuthService {
   constructor(
     private readonly usersRepository: UsersRepository,
     private readonly jwtService: JwtService,
+    private readonly mailService: MailService,
     @Optional()
     private readonly configService?: ConfigService<EnvConfig, true>,
   ) {}
@@ -342,5 +353,133 @@ export class AuthService {
     } catch {
       throw new UnauthorizedException('Invalid or expired refresh token');
     }
+  }
+
+  private hashOtp(otp: string): string {
+    return crypto.createHash('sha256').update(otp).digest('hex');
+  }
+
+  private isOtpMatch(submittedOtp: string, storedHash: string): boolean {
+    const submittedBuf = Buffer.from(this.hashOtp(submittedOtp), 'utf8');
+    const storedBuf = Buffer.from(storedHash, 'utf8');
+    return (
+      submittedBuf.length === storedBuf.length &&
+      crypto.timingSafeEqual(submittedBuf, storedBuf)
+    );
+  }
+
+  private async findResettableUser(email: string): Promise<User> {
+    const normalizedEmail = email.toLowerCase().trim();
+    const user = await this.usersRepository.findByEmail(normalizedEmail);
+    if (!user) {
+      throw new NotFoundException('No account found with this email address');
+    }
+    if (user.status === UserStatus.SUSPENDED) {
+      throw new UnauthorizedException('Your account has been suspended!');
+    }
+    return user;
+  }
+
+  private assertOtpValid(user: User, otp?: string): void {
+    if (
+      !user.resetOtpHash ||
+      !user.resetOtpExpiresAt ||
+      user.resetOtpExpiresAt.getTime() <= Date.now()
+    ) {
+      throw new BadRequestException(
+        'OTP is invalid or has expired. Please request a new one.',
+      );
+    }
+
+    if (otp !== undefined) {
+      if (!this.isOtpMatch(otp.trim(), user.resetOtpHash)) {
+        throw new BadRequestException('Invalid OTP code');
+      }
+      return;
+    }
+
+    if (!user.resetOtpVerified) {
+      throw new BadRequestException(
+        'Please verify your OTP before resetting your password',
+      );
+    }
+  }
+
+  /**
+   * Generate a 6-digit OTP and send it via SMTP for password reset.
+   */
+  async forgotPassword(payload: ForgotPasswordDto) {
+    const user = await this.findResettableUser(payload.email);
+
+    const otp = crypto.randomInt(100000, 1000000).toString();
+    const resetOtpHash = this.hashOtp(otp);
+    const resetOtpExpiresAt = new Date(Date.now() + OTP_EXPIRY_MS);
+
+    await this.usersRepository.update(user.id, {
+      resetOtpHash,
+      resetOtpExpiresAt,
+      resetOtpVerified: false,
+    });
+
+    try {
+      await this.mailService.sendPasswordResetOtp(
+        user.email,
+        user.fullName,
+        otp,
+        OTP_EXPIRY_MINUTES,
+      );
+    } catch (error) {
+      await this.usersRepository.update(user.id, {
+        resetOtpHash: null,
+        resetOtpExpiresAt: null,
+        resetOtpVerified: false,
+      });
+      throw error;
+    }
+
+    return {
+      email: user.email,
+      expiresInMinutes: OTP_EXPIRY_MINUTES,
+    };
+  }
+
+  /**
+   * Verify the 6-digit password reset OTP sent to email.
+   */
+  async verifyOtp(payload: VerifyOtpDto) {
+    const user = await this.findResettableUser(payload.email);
+    this.assertOtpValid(user, payload.otp);
+
+    await this.usersRepository.update(user.id, {
+      resetOtpVerified: true,
+      resetOtpExpiresAt: new Date(Date.now() + OTP_EXPIRY_MS),
+    });
+
+    return {
+      email: user.email,
+      verified: true,
+    };
+  }
+
+  /**
+   * Reset user password after OTP verification (supports otp inline or pre-verified state).
+   */
+  async resetPassword(payload: ResetPasswordDto) {
+    const user = await this.findResettableUser(payload.email);
+    this.assertOtpValid(user, payload.otp);
+
+    const hashedPassword = await bcrypt.hash(payload.newPassword, 12);
+
+    await this.usersRepository.update(user.id, {
+      password: hashedPassword,
+      resetOtpHash: null,
+      resetOtpExpiresAt: null,
+      resetOtpVerified: false,
+      emailVerified: user.emailVerified || new Date(),
+    });
+
+    return {
+      email: user.email,
+    };
   }
 }

@@ -47,6 +47,9 @@ describe('UsersService', () => {
     phoneVerified: null,
     adminVerified: null,
     googleId: null,
+    resetOtpHash: null,
+    resetOtpExpiresAt: null,
+    resetOtpVerified: false,
     createdAt: new Date(),
     updatedAt: new Date(),
   };
@@ -84,6 +87,9 @@ describe('UsersService', () => {
       expect(profile.id).toBe(mockUser.id);
       expect(profile.email).toBe(mockUser.email);
       expect('password' in profile).toBe(false);
+      expect('resetOtpHash' in profile).toBe(false);
+      expect('resetOtpExpiresAt' in profile).toBe(false);
+      expect('resetOtpVerified' in profile).toBe(false);
     });
 
     it('should throw NotFoundException if user does not exist', async () => {

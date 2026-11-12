@@ -1,7 +1,15 @@
 import { Body, Controller, HttpCode, HttpStatus, Post } from '@nestjs/common';
 import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { AuthService } from './auth.service';
-import { RegisterDto, LoginDto, GoogleLoginDto, RefreshTokenDto } from './dto';
+import {
+  RegisterDto,
+  LoginDto,
+  GoogleLoginDto,
+  RefreshTokenDto,
+  ForgotPasswordDto,
+  VerifyOtpDto,
+  ResetPasswordDto,
+} from './dto';
 
 @ApiTags('Authentication')
 @Controller('auth')
@@ -78,6 +86,68 @@ export class AuthController {
     const data = await this.authService.refreshToken(dto.refreshToken);
     return {
       message: 'Token refreshed successfully!',
+      data,
+    };
+  }
+
+  @Post('forgot-password')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Send a 6-digit password reset OTP via email' })
+  @ApiResponse({
+    status: 200,
+    description: 'Password reset OTP sent to email successfully.',
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'No account found with this email.',
+  })
+  async forgotPassword(@Body() dto: ForgotPasswordDto) {
+    const data = await this.authService.forgotPassword(dto);
+    return {
+      message: 'OTP sent to your email successfully',
+      data,
+    };
+  }
+
+  @Post('verify-otp')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Verify the 6-digit password reset OTP' })
+  @ApiResponse({
+    status: 200,
+    description: 'OTP verified successfully.',
+  })
+  @ApiResponse({ status: 400, description: 'Invalid or expired OTP.' })
+  @ApiResponse({
+    status: 404,
+    description: 'No account found with this email.',
+  })
+  async verifyOtp(@Body() dto: VerifyOtpDto) {
+    const data = await this.authService.verifyOtp(dto);
+    return {
+      message: 'OTP verified successfully',
+      data,
+    };
+  }
+
+  @Post('reset-password')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Reset password after OTP verification' })
+  @ApiResponse({
+    status: 200,
+    description: 'Password reset successfully.',
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'OTP invalid, expired, or not verified.',
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'No account found with this email.',
+  })
+  async resetPassword(@Body() dto: ResetPasswordDto) {
+    const data = await this.authService.resetPassword(dto);
+    return {
+      message: 'Password reset successfully',
       data,
     };
   }

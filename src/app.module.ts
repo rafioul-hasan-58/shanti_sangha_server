@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { PrismaModule } from './prisma/prisma.module';
+import { MailModule } from './mail/mail.module';
 import { ConfigModule } from '@nestjs/config';
 import { validateConfig } from './config/env.schema';
 import { AuthModule } from './auth/auth.module';
@@ -16,6 +17,7 @@ import { HealthModule } from './health/health.module';
       validate: validateConfig,
     }),
     PrismaModule,
+    MailModule,
     AuthModule,
     UsersModule,
     MembersModule,
