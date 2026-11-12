@@ -18,8 +18,11 @@ import { UsersRepository } from './users.repository';
 describe('UsersService', () => {
   let service: UsersService;
   let repository: {
+    findAll: jest.Mock;
+    count: jest.Mock;
     findById: jest.Mock;
     update: jest.Mock;
+    delete: jest.Mock;
   };
 
   const mockUser: User = {
@@ -56,8 +59,11 @@ describe('UsersService', () => {
 
   beforeEach(async () => {
     repository = {
+      findAll: jest.fn(),
+      count: jest.fn(),
       findById: jest.fn(),
       update: jest.fn(),
+      delete: jest.fn(),
     };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -177,6 +183,242 @@ describe('UsersService', () => {
       await expect(
         service.updateProfile(mockUser.id, { fullName: 'Someone' }),
       ).rejects.toThrow(UnauthorizedException);
+    });
+  });
+
+  describe('findAll', () => {
+    it('should return paginated sanitized users with metadata and apply filters', async () => {
+      repository.findAll.mockResolvedValue([mockUser]);
+      repository.count.mockResolvedValue(1);
+
+      const result = await service.findAll({
+        page: 2,
+        limit: 5,
+        role: Role.USER,
+        status: UserStatus.ACTIVE,
+        emailVerified: false,
+        search: 'Test',
+        sortBy: 'fullName',
+        sortOrder: 'asc',
+      });
+
+      expect(repository.findAll).toHaveBeenCalledWith({
+        where: {
+          role: Role.USER,
+          status: UserStatus.ACTIVE,
+          emailVerified: false,
+          OR: [
+            { fullName: { contains: 'Test', mode: 'insensitive' } },
+            { email: { contains: 'Test', mode: 'insensitive' } },
+            { phoneNumber: { contains: 'Test', mode: 'insensitive' } },
+            { village: { contains: 'Test', mode: 'insensitive' } },
+            { profession: { contains: 'Test', mode: 'insensitive' } },
+            { currentLocation: { contains: 'Test', mode: 'insensitive' } },
+          ],
+        },
+        orderBy: [{ fullName: 'asc' }, { createdAt: 'desc' }],
+        skip: 5,
+        take: 5,
+      });
+      expect(result.users).toHaveLength(1);
+      expect('password' in result.users[0]).toBe(false);
+      expect(result.meta).toEqual({
+        total: 1,
+        page: 2,
+        limit: 5,
+        totalPages: 1,
+        hasNextPage: false,
+        hasPreviousPage: true,
+      });
+    });
+  });
+
+  describe('findOne', () => {
+    it('should return a sanitized user by ObjectId', async () => {
+      repository.findById.mockResolvedValue(mockUser);
+
+      const result = await service.findOne(mockUser.id);
+
+      expect(repository.findById).toHaveBeenCalledWith(mockUser.id);
+      expect(result.id).toBe(mockUser.id);
+      expect('password' in result).toBe(false);
+    });
+
+    it('should throw BadRequestException for invalid ObjectId', async () => {
+      await expect(service.findOne('not-an-object-id')).rejects.toThrow(
+        BadRequestException,
+      );
+    });
+
+    it('should throw NotFoundException if user does not exist', async () => {
+      repository.findById.mockResolvedValue(null);
+
+      await expect(service.findOne('64a1b2c3d4e5f67890123457')).rejects.toThrow(
+        NotFoundException,
+      );
+    });
+  });
+
+  describe('updateUser', () => {
+    const actorId = '64a1b2c3d4e5f67890123499';
+
+    it('should update admin and profile fields and return sanitized user', async () => {
+      repository.findById.mockResolvedValue(mockUser);
+      const updatedUser: User = {
+        ...mockUser,
+        fullName: 'Updated Admin Target',
+        role: Role.MODERATOR,
+        status: UserStatus.INACTIVE,
+        emailVerified: true,
+        adminVerified: new Date(),
+      };
+      repository.update.mockResolvedValue(updatedUser);
+
+      const result = await service.updateUser(
+        mockUser.id,
+        {
+          fullName: ' Updated Admin Target ',
+          role: Role.MODERATOR,
+          status: UserStatus.INACTIVE,
+          emailVerified: true,
+          adminVerified: true,
+        },
+        actorId,
+      );
+
+      const updateCalls = repository.update.mock.calls as [
+        string,
+        {
+          fullName?: string;
+          role?: Role;
+          status?: UserStatus;
+          emailVerified?: boolean;
+          adminVerified?: Date | null;
+        },
+      ][];
+      expect(updateCalls[0][0]).toBe(mockUser.id);
+      expect(updateCalls[0][1]).toMatchObject({
+        fullName: 'Updated Admin Target',
+        role: Role.MODERATOR,
+        status: UserStatus.INACTIVE,
+        emailVerified: true,
+      });
+      expect(updateCalls[0][1].adminVerified).toBeInstanceOf(Date);
+      expect(result.role).toBe(Role.MODERATOR);
+      expect('password' in result).toBe(false);
+    });
+
+    it('should clear adminVerified when set to false', async () => {
+      repository.findById.mockResolvedValue({
+        ...mockUser,
+        adminVerified: new Date(),
+      });
+      repository.update.mockResolvedValue({
+        ...mockUser,
+        adminVerified: null,
+      });
+
+      const result = await service.updateUser(
+        mockUser.id,
+        { adminVerified: false },
+        actorId,
+      );
+
+      expect(repository.update).toHaveBeenCalledWith(mockUser.id, {
+        adminVerified: null,
+      });
+      expect(result.adminVerified).toBeNull();
+    });
+
+    it('should prevent changing own role or suspending own account', async () => {
+      repository.findById.mockResolvedValue({
+        ...mockUser,
+        role: Role.ADMIN,
+      });
+
+      await expect(
+        service.updateUser(mockUser.id, { role: Role.USER }, mockUser.id),
+      ).rejects.toThrow(BadRequestException);
+
+      await expect(
+        service.updateUser(
+          mockUser.id,
+          { status: UserStatus.SUSPENDED },
+          mockUser.id,
+        ),
+      ).rejects.toThrow(BadRequestException);
+    });
+  });
+
+  describe('toggleBlockUser', () => {
+    const actorId = '64a1b2c3d4e5f67890123499';
+
+    it('should block an active user by setting status to SUSPENDED', async () => {
+      repository.findById.mockResolvedValue({
+        ...mockUser,
+        status: UserStatus.ACTIVE,
+      });
+      repository.update.mockResolvedValue({
+        ...mockUser,
+        status: UserStatus.SUSPENDED,
+      });
+
+      const result = await service.toggleBlockUser(mockUser.id, actorId);
+
+      expect(repository.update).toHaveBeenCalledWith(mockUser.id, {
+        status: UserStatus.SUSPENDED,
+      });
+      expect(result.status).toBe(UserStatus.SUSPENDED);
+      expect('password' in result).toBe(false);
+    });
+
+    it('should unblock a suspended user by setting status to ACTIVE', async () => {
+      repository.findById.mockResolvedValue({
+        ...mockUser,
+        status: UserStatus.SUSPENDED,
+      });
+      repository.update.mockResolvedValue({
+        ...mockUser,
+        status: UserStatus.ACTIVE,
+      });
+
+      const result = await service.toggleBlockUser(mockUser.id, actorId);
+
+      expect(repository.update).toHaveBeenCalledWith(mockUser.id, {
+        status: UserStatus.ACTIVE,
+      });
+      expect(result.status).toBe(UserStatus.ACTIVE);
+    });
+
+    it('should throw BadRequestException if admin tries to block themselves', async () => {
+      repository.findById.mockResolvedValue(mockUser);
+
+      await expect(
+        service.toggleBlockUser(mockUser.id, mockUser.id),
+      ).rejects.toThrow(BadRequestException);
+    });
+  });
+
+  describe('deleteUser', () => {
+    const actorId = '64a1b2c3d4e5f67890123499';
+
+    it('should delete user and return sanitized deleted record', async () => {
+      repository.findById.mockResolvedValue(mockUser);
+      repository.delete.mockResolvedValue(mockUser);
+
+      const result = await service.deleteUser(mockUser.id, actorId);
+
+      expect(repository.delete).toHaveBeenCalledWith(mockUser.id);
+      expect(result.id).toBe(mockUser.id);
+      expect('password' in result).toBe(false);
+    });
+
+    it('should throw BadRequestException if admin tries to delete themselves', async () => {
+      repository.findById.mockResolvedValue(mockUser);
+
+      await expect(
+        service.deleteUser(mockUser.id, mockUser.id),
+      ).rejects.toThrow(BadRequestException);
     });
   });
 });

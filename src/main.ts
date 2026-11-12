@@ -36,9 +36,9 @@ async function bootstrap() {
         ...defaultOrigins,
         ...(envCorsOrigins
           ? envCorsOrigins
-            .split(',')
-            .map((origin) => origin.trim())
-            .filter(Boolean)
+              .split(',')
+              .map((origin) => origin.trim())
+              .filter(Boolean)
           : []),
       ]),
     );
