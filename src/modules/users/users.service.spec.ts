@@ -268,7 +268,7 @@ describe('UsersService', () => {
         ...mockUser,
         fullName: 'Updated Admin Target',
         role: Role.MODERATOR,
-        status: UserStatus.INACTIVE,
+        status: UserStatus.SUSPENDED,
         emailVerified: true,
         phoneVerified: true,
         adminVerified: true,
@@ -280,7 +280,7 @@ describe('UsersService', () => {
         {
           fullName: ' Updated Admin Target ',
           role: Role.MODERATOR,
-          status: UserStatus.INACTIVE,
+          status: UserStatus.SUSPENDED,
           emailVerified: true,
           phoneVerified: true,
           adminVerified: true,
@@ -291,7 +291,7 @@ describe('UsersService', () => {
       expect(repository.update).toHaveBeenCalledWith(mockUser.id, {
         fullName: 'Updated Admin Target',
         role: Role.MODERATOR,
-        status: UserStatus.INACTIVE,
+        status: UserStatus.SUSPENDED,
         emailVerified: true,
         phoneVerified: true,
         adminVerified: true,

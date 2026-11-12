@@ -72,6 +72,7 @@ model Member {
 enum MemberType {
   PIONEER
   COMMITTEE
+  ADMIN
 }
 
 enum Role {
@@ -95,7 +96,6 @@ enum BloodGroup {
 
 enum UserStatus {
   ACTIVE
-  INACTIVE
   SUSPENDED
 }
 
