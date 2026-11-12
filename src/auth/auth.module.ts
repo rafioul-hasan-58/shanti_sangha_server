@@ -10,6 +10,7 @@ import { UsersModule } from '../modules/users';
   imports: [
     UsersModule,
     JwtModule.registerAsync({
+      global: true,
       imports: [ConfigModule],
       inject: [ConfigService],
       useFactory: (config: ConfigService<EnvConfig, true>) => ({

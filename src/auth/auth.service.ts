@@ -19,6 +19,7 @@ import {
 import bcrypt from 'bcryptjs';
 import crypto from 'crypto';
 import { UsersRepository } from '../modules/users/users.repository';
+import { sanitizeUser } from '../modules/users/users.utils';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
 import { GoogleLoginDto } from './dto/google-login.dto';
@@ -189,7 +190,7 @@ export class AuthService {
     return {
       accessToken,
       refreshToken,
-      user: this.sanitizeUser(user),
+      user: sanitizeUser(user),
       // Backward compatibility fields
       id: user.id,
       fullName: user.fullName,
@@ -222,7 +223,7 @@ export class AuthService {
     return {
       accessToken,
       refreshToken,
-      user: this.sanitizeUser(user),
+      user: sanitizeUser(user),
     };
   }
 
@@ -300,7 +301,7 @@ export class AuthService {
     return {
       accessToken,
       refreshToken,
-      user: this.sanitizeUser(user),
+      user: sanitizeUser(user),
     };
   }
 
@@ -343,19 +344,10 @@ export class AuthService {
       return {
         accessToken,
         refreshToken,
-        user: this.sanitizeUser(user),
+        user: sanitizeUser(user),
       };
     } catch {
       throw new UnauthorizedException('Invalid or expired refresh token');
     }
-  }
-
-  /**
-   * Helper to exclude sensitive password field from user object
-   */
-  private sanitizeUser(user: User) {
-    const { password: _password, ...sanitized } = user;
-    void _password;
-    return sanitized;
   }
 }
