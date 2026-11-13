@@ -53,6 +53,7 @@ model Member {
   roleEn            String
   roleBn            String
   image             String?
+  imagePublicId     String?
   villageEn         String
   villageBn         String // URL or path
   summaryEn         String

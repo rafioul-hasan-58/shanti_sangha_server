@@ -3,6 +3,7 @@ import { ConflictException, NotFoundException } from '@nestjs/common';
 import { Member, MemberType } from '@prisma/client';
 import { MembersService } from './members.service';
 import { MembersRepository } from './members.repository';
+import { CloudinaryService } from '../../cloudinary/cloudinary.service';
 
 describe('MembersService', () => {
   let service: MembersService;
@@ -24,6 +25,7 @@ describe('MembersService', () => {
     roleEn: 'President',
     roleBn: 'সভাপতি',
     image: 'https://example.com/emon.jpg',
+    imagePublicId: null,
     villageEn: 'Shavarchala',
     villageBn: 'শাভারচালা',
     summaryEn: 'Community leader',
@@ -231,6 +233,51 @@ describe('MembersService', () => {
       const result = await service.delete('emon');
       expect(repository.delete).toHaveBeenCalledWith(mockMember.id);
       expect(result.id).toBe(mockMember.id);
+    });
+
+    it('should delete member and call cloudinary deleteImage if imagePublicId exists', async () => {
+      const memberWithImage = {
+        ...mockMember,
+        imagePublicId: 'members/emon_123',
+      };
+      repository.findBySlug.mockResolvedValue(memberWithImage);
+      repository.delete.mockResolvedValue(memberWithImage);
+      const mockCloudinary = {
+        deleteImage: jest.fn().mockResolvedValue({ deleted: true }),
+      };
+
+      const serviceWithCloudinary = new MembersService(
+        repository as unknown as MembersRepository,
+        mockCloudinary as unknown as CloudinaryService,
+      );
+
+      const result = await serviceWithCloudinary.delete('emon');
+      expect(repository.delete).toHaveBeenCalledWith(memberWithImage.id);
+      expect(mockCloudinary.deleteImage).toHaveBeenCalledWith(
+        'members/emon_123',
+      );
+      expect(result.id).toBe(memberWithImage.id);
+    });
+
+    it('should not fail member delete if cloudinary deleteImage throws', async () => {
+      const memberWithImage = {
+        ...mockMember,
+        imagePublicId: 'members/emon_123',
+      };
+      repository.findBySlug.mockResolvedValue(memberWithImage);
+      repository.delete.mockResolvedValue(memberWithImage);
+      const mockCloudinary = {
+        deleteImage: jest.fn().mockRejectedValue(new Error('Cloudinary down')),
+      };
+
+      const serviceWithCloudinary = new MembersService(
+        repository as unknown as MembersRepository,
+        mockCloudinary as unknown as CloudinaryService,
+      );
+
+      const result = await serviceWithCloudinary.delete('emon');
+      expect(repository.delete).toHaveBeenCalledWith(memberWithImage.id);
+      expect(result.id).toBe(memberWithImage.id);
     });
 
     it('should throw NotFoundException when deleting non-existent member', async () => {

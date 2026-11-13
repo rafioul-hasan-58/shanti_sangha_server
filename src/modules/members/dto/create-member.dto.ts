@@ -61,6 +61,14 @@ export class CreateMemberDto {
   @IsString()
   image?: string;
 
+  @ApiPropertyOptional({
+    description: 'Cloudinary public ID of the member image',
+    example: 'members/c7b2x89a',
+  })
+  @IsOptional()
+  @IsString()
+  imagePublicId?: string;
+
   @ApiProperty({
     description: 'Village name in English',
     example: 'Shavarchala',

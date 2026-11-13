@@ -1,15 +1,24 @@
 import {
   ConflictException,
   Injectable,
+  Logger,
   NotFoundException,
+  Optional,
 } from '@nestjs/common';
 import { Member, MemberType, Prisma } from '@prisma/client';
 import { MembersRepository } from './members.repository';
 import { CreateMemberDto, QueryMemberDto, UpdateMemberDto } from './dto';
+import { CloudinaryService } from '../../cloudinary/cloudinary.service';
 
 @Injectable()
 export class MembersService {
-  constructor(private readonly membersRepository: MembersRepository) {}
+  private readonly logger = new Logger(MembersService.name);
+
+  constructor(
+    private readonly membersRepository: MembersRepository,
+    @Optional()
+    private readonly cloudinaryService?: CloudinaryService,
+  ) {}
 
   /**
    * Helper to check if a string is a 24-character hexadecimal MongoDB ObjectId
@@ -84,6 +93,7 @@ export class MembersService {
       summaryEn: dto.summaryEn.trim(),
       summaryBn: dto.summaryBn.trim(),
       image: dto.image?.trim() || null,
+      imagePublicId: dto.imagePublicId?.trim() || null,
       joiningYear: dto.joiningYear.trim(),
       keyContributionEn: dto.keyContributionEn || [],
       keyContributionBn: dto.keyContributionBn || [],
@@ -221,6 +231,9 @@ export class MembersService {
       ...(dto.image !== undefined && {
         image: dto.image?.trim() || null,
       }),
+      ...(dto.imagePublicId !== undefined && {
+        imagePublicId: dto.imagePublicId?.trim() || null,
+      }),
       ...(dto.mottoEn !== undefined && {
         mottoEn: dto.mottoEn?.trim() || null,
       }),
@@ -247,6 +260,19 @@ export class MembersService {
    */
   async delete(identifier: string): Promise<Member> {
     const existing = await this.findOne(identifier);
-    return this.membersRepository.delete(existing.id);
+    const deleted = await this.membersRepository.delete(existing.id);
+
+    if (existing.imagePublicId && this.cloudinaryService) {
+      try {
+        await this.cloudinaryService.deleteImage(existing.imagePublicId);
+      } catch (error) {
+        const msg = error instanceof Error ? error.message : String(error);
+        this.logger.warn(
+          `Failed to delete Cloudinary image '${existing.imagePublicId}' for member '${existing.id}': ${msg}`,
+        );
+      }
+    }
+
+    return deleted;
   }
 }

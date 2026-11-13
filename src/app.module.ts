@@ -9,6 +9,8 @@ import { AuthModule } from './auth/auth.module';
 import { UsersModule } from './modules/users';
 import { MembersModule } from './modules/members';
 import { HealthModule } from './health/health.module';
+import { CloudinaryModule } from './cloudinary/cloudinary.module';
+import { UploadModule } from './upload/upload.module';
 
 @Module({
   imports: [
@@ -22,6 +24,8 @@ import { HealthModule } from './health/health.module';
     UsersModule,
     MembersModule,
     HealthModule,
+    CloudinaryModule,
+    UploadModule,
   ],
   controllers: [AppController],
   providers: [AppService],

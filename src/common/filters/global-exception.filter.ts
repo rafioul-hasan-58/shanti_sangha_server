@@ -8,6 +8,7 @@ import {
 } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { Request, Response } from 'express';
+import { MulterError } from 'multer';
 import { ZodError } from 'zod';
 
 interface ErrorMessage {
@@ -39,6 +40,16 @@ export class GlobalExceptionFilter implements ExceptionFilter {
       statusCode = mapped.statusCode;
       message = mapped.message;
       errorMessages = mapped.errorMessages;
+    } else if (exception instanceof MulterError) {
+      if (exception.code === 'LIMIT_FILE_SIZE') {
+        statusCode = HttpStatus.PAYLOAD_TOO_LARGE;
+        message = 'File size exceeds 2 MB limit';
+        errorMessages = [{ path: 'file', message }];
+      } else {
+        statusCode = HttpStatus.BAD_REQUEST;
+        message = exception.message;
+        errorMessages = [{ path: 'file', message }];
+      }
     } else if (exception instanceof HttpException) {
       statusCode = exception.getStatus();
       const res = exception.getResponse();

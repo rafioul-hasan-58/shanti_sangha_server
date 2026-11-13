@@ -22,6 +22,10 @@ export const envSchema = z.object({
   SMTP_PASS: z.string().optional(),
   SMTP_EMAIL_FROM: z.string().email().optional(),
   SMTP_NAME: z.string().default('SHAVARCHALA SHANTI SANGHA'),
+  CLOUDINARY_CLOUD_NAME: z.string().min(1, 'CLOUDINARY_CLOUD_NAME is required'),
+  CLOUDINARY_API_KEY: z.string().min(1, 'CLOUDINARY_API_KEY is required'),
+  CLOUDINARY_API_SECRET: z.string().min(1, 'CLOUDINARY_API_SECRET is required'),
+  CLOUDINARY_FOLDER: z.string().default('members'),
 });
 
 export type EnvConfig = z.infer<typeof envSchema>;

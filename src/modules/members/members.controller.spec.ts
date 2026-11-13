@@ -22,6 +22,7 @@ describe('MembersController', () => {
     roleEn: 'President',
     roleBn: 'সভাপতি',
     image: 'https://example.com/emon.jpg',
+    imagePublicId: null,
     villageEn: 'Shavarchala',
     villageBn: 'শাভারচালা',
     summaryEn: 'Community leader',
