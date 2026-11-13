@@ -20,17 +20,18 @@ import { Role, UserStatus } from '@prisma/client';
 import { AuthGuard, type JwtPayload } from '../../common/guards/auth.guard';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { Roles } from '../../common/decorators/roles.decorator';
+import { Public } from '../../common/decorators/public.decorator';
 import { UsersService } from './users.service';
 import { QueryUserDto, UpdateProfileDto, UpdateUserDto } from './dto';
 
 @ApiTags('Users')
-@ApiBearerAuth()
 @UseGuards(AuthGuard)
 @Controller('users')
 export class UsersController {
-  constructor(private readonly usersService: UsersService) { }
+  constructor(private readonly usersService: UsersService) {}
 
   @Get('profile')
+  @ApiBearerAuth()
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Get authenticated user profile (My Profile)' })
   @ApiResponse({
@@ -48,6 +49,7 @@ export class UsersController {
   }
 
   @Patch('profile')
+  @ApiBearerAuth()
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Update authenticated user profile' })
   @ApiResponse({
@@ -68,18 +70,17 @@ export class UsersController {
     };
   }
 
+  @Public()
   @Get()
-  @Roles(Role.ADMIN, Role.SUPER_ADMIN, Role.USER, Role.MODERATOR)
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
-    summary: 'Get all users with optional filters, pagination, and sorting',
+    summary:
+      'Get all users with optional filters, pagination, and sorting (Public)',
   })
   @ApiResponse({
     status: 200,
     description: 'Users list retrieved successfully.',
   })
-  @ApiResponse({ status: 401, description: 'Unauthorized.' })
-  @ApiResponse({ status: 403, description: 'Forbidden.' })
   async findAll(@Query() query: QueryUserDto) {
     const data = await this.usersService.findAll(query);
     return {
@@ -89,6 +90,7 @@ export class UsersController {
   }
 
   @Get(':id')
+  @ApiBearerAuth()
   @Roles(Role.ADMIN, Role.SUPER_ADMIN)
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Get a single user by MongoDB ObjectId' })
@@ -109,6 +111,7 @@ export class UsersController {
   }
 
   @Patch(':id/toggle-block')
+  @ApiBearerAuth()
   @Roles(Role.ADMIN, Role.SUPER_ADMIN)
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
@@ -134,6 +137,7 @@ export class UsersController {
   }
 
   @Patch(':id')
+  @ApiBearerAuth()
   @Roles(Role.ADMIN, Role.SUPER_ADMIN)
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Update a user by MongoDB ObjectId (Admin)' })
@@ -158,6 +162,7 @@ export class UsersController {
   }
 
   @Delete(':id')
+  @ApiBearerAuth()
   @Roles(Role.ADMIN, Role.SUPER_ADMIN)
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Delete a user by MongoDB ObjectId (Admin)' })
